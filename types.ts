@@ -1,8 +1,9 @@
+
 export type LinkItem = {
   id: string;
   title: string;
   url: string;
-  icon: 'generic' | 'twitter' | 'instagram' | 'github' | 'linkedin' | 'youtube' | 'mail';
+  icon: string;
   isActive: boolean;
 };
 
@@ -28,6 +29,7 @@ export type ProfileData = {
   metaTitle?: string;
   metaDescription?: string;
   customFooterText?: string;
+  customCss?: string;
 };
 
 export type ViewMode = 'landing' | 'editor' | 'preview';

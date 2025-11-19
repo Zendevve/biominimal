@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
-import { Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, Twitter, Instagram, Github, Globe, Image as ImageIcon } from 'lucide-react';
+import { Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, Twitter, Instagram, Github, Globe, Image as ImageIcon, Code } from 'lucide-react';
 import { ProfileData, LinkItem, ViewMode } from './types';
 import { INITIAL_PROFILE, THEMES } from './constants';
 import { PhonePreview } from './components/PhonePreview';
+import { IconSelector } from './components/IconSelector';
 
 function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('landing');
@@ -20,7 +22,7 @@ function App() {
       id: Date.now().toString(),
       title: 'New Link',
       url: 'https://',
-      icon: 'generic',
+      icon: 'globe',
       isActive: true
     };
     setProfile(prev => ({ ...prev, links: [...prev.links, newLink] }));
@@ -45,15 +47,15 @@ function App() {
     
     const linksHtml = profile.links.filter(l => l.isActive).map(link => {
         let iconName = link.icon;
-        if (iconName === 'generic') iconName = 'globe';
+        if (iconName === 'generic') iconName = 'globe'; // Legacy fallback
         
         return `
-          <a href="${link.url}" target="_blank" rel="noreferrer" class="block w-full px-4 py-3.5 rounded-xl transition-all duration-200 flex items-center justify-between group ${theme.cardBgClass} ${theme.cardHoverClass}">
+          <a href="${link.url}" target="_blank" rel="noreferrer" class="block w-full px-4 py-3.5 rounded-xl transition-all duration-200 flex items-center justify-between group bio-link-item ${theme.cardBgClass} ${theme.cardHoverClass}">
             <div class="flex items-center gap-3">
-              <span class="opacity-70 group-hover:opacity-100 transition-opacity">
+              <span class="opacity-70 group-hover:opacity-100 transition-opacity bio-link-icon">
                 <i data-lucide="${iconName}" class="w-5 h-5"></i>
               </span>
-              <span class="font-medium text-sm">${link.title}</span>
+              <span class="font-medium text-sm bio-link-text">${link.title}</span>
             </div>
           </a>
         `;
@@ -81,6 +83,9 @@ function App() {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      ${profile.customCss || ''}
+    </style>
     <script>
       tailwind.config = {
         theme: {
@@ -97,7 +102,7 @@ function App() {
 <body class="${bodyClass}" ${bodyStyle}>
     <div class="max-w-md mx-auto w-full px-6 py-12 flex flex-col items-center flex-1 ${overlayClass}">
         <!-- Avatar -->
-        <div class="mb-6 relative group">
+        <div class="mb-6 relative group bio-avatar">
             <div class="w-24 h-24 rounded-full overflow-hidden ring-4 ring-opacity-20 ${theme.textClass === 'text-white' ? 'ring-white' : 'ring-black'}">
                 <img src="${profile.avatarUrl}" alt="${profile.name}" class="w-full h-full object-cover" />
             </div>
@@ -105,20 +110,20 @@ function App() {
 
         <!-- Header Info -->
         <div class="text-center mb-8">
-            <h1 class="text-2xl font-bold tracking-tight mb-2">${profile.name}</h1>
-            <p class="text-sm opacity-80 leading-relaxed max-w-[250px] mx-auto">
+            <h1 class="text-2xl font-bold tracking-tight mb-2 bio-name">${profile.name}</h1>
+            <p class="text-sm opacity-80 leading-relaxed max-w-[250px] mx-auto bio-description">
                 ${profile.bio}
             </p>
         </div>
 
         <!-- Links -->
-        <div class="w-full space-y-3 flex-1">
+        <div class="w-full space-y-3 flex-1 bio-links">
             ${linksHtml}
         </div>
 
         <!-- Footer -->
         ${profile.customFooterText ? `
-        <div class="mt-8 pt-4 opacity-40 text-[10px] uppercase tracking-widest font-semibold">
+        <div class="mt-8 pt-4 opacity-40 text-[10px] uppercase tracking-widest font-semibold bio-footer">
             ${profile.customFooterText}
         </div>
         ` : ''}
@@ -279,7 +284,7 @@ function App() {
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-8">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-8 pb-24">
           
           {activeTab === 'links' && (
             <>
@@ -377,19 +382,12 @@ function App() {
                                   placeholder="https://..."
                                 />
                              </div>
-                             <select 
-                                value={link.icon}
-                                onChange={(e) => handleUpdateLink(link.id, 'icon', e.target.value)}
-                                className="px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600 focus:outline-none"
-                              >
-                                <option value="generic">🌐</option>
-                                <option value="twitter">🐦</option>
-                                <option value="instagram">📷</option>
-                                <option value="github">💻</option>
-                                <option value="linkedin">💼</option>
-                                <option value="youtube">▶️</option>
-                                <option value="mail">✉️</option>
-                             </select>
+                             <div className="w-[140px]">
+                                <IconSelector 
+                                    value={link.icon}
+                                    onChange={(val) => handleUpdateLink(link.id, 'icon', val)}
+                                />
+                             </div>
                           </div>
                       </div>
                     </div>
@@ -448,6 +446,32 @@ function App() {
                     />
                     <p className="text-xs text-gray-500">Provide a direct URL to an image to override the theme background.</p>
                  </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4">Custom CSS</h3>
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                   <div className="flex items-center gap-3 text-sm text-gray-700">
+                      <Code className="w-4 h-4" />
+                      <span>CSS Overrides</span>
+                   </div>
+                   <textarea
+                      value={profile.customCss || ''}
+                      onChange={(e) => handleUpdateField('customCss', e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-900 text-green-400 font-mono text-xs rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600 h-32"
+                      placeholder="body { background: #000; }&#10;.bio-avatar { border-radius: 0; }"
+                    />
+                   <div className="text-[10px] text-gray-500 space-y-1">
+                      <p>Available classes:</p>
+                      <div className="flex flex-wrap gap-1">
+                         <code className="bg-gray-100 px-1 rounded">.bio-avatar</code>
+                         <code className="bg-gray-100 px-1 rounded">.bio-name</code>
+                         <code className="bg-gray-100 px-1 rounded">.bio-description</code>
+                         <code className="bg-gray-100 px-1 rounded">.bio-links</code>
+                         <code className="bg-gray-100 px-1 rounded">.bio-link-item</code>
+                      </div>
+                   </div>
+                </div>
               </div>
             </section>
           )}

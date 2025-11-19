@@ -1,3 +1,4 @@
+
 import { ProfileData, ThemeConfig } from './types';
 
 export const THEMES: ThemeConfig[] = [
@@ -49,7 +50,7 @@ export const INITIAL_PROFILE: ProfileData = {
   avatarUrl: 'https://picsum.photos/200/200',
   themeId: 'minimal-light',
   links: [
-    { id: '1', title: 'Latest Project', url: '#', icon: 'generic', isActive: true },
+    { id: '1', title: 'Latest Project', url: '#', icon: 'globe', isActive: true },
     { id: '2', title: 'Twitter', url: '#', icon: 'twitter', isActive: true },
     { id: '3', title: 'Instagram', url: '#', icon: 'instagram', isActive: true },
     { id: '4', title: 'Contact Me', url: 'mailto:hello@example.com', icon: 'mail', isActive: true },
@@ -58,4 +59,5 @@ export const INITIAL_PROFILE: ProfileData = {
   metaDescription: 'Welcome to my personal page. Check out my latest projects and social links.',
   customFooterText: 'Made with BioMinimal',
   bgImage: '',
+  customCss: '',
 };
