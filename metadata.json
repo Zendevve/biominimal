@@ -1,0 +1,5 @@
+{
+  "name": "BioMinimal",
+  "description": "A stripped-down, hyper-fast, and aesthetic link-in-bio builder. No fluff, just essential identity management.",
+  "requestFramePermissions": []
+}
