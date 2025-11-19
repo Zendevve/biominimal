@@ -10,6 +10,13 @@ interface PhonePreviewProps {
 export const PhonePreview: React.FC<PhonePreviewProps> = ({ profile }) => {
   const theme = THEMES.find(t => t.id === profile.themeId) || THEMES[0];
   const fontClass = theme.font === 'serif' ? 'font-serif' : 'font-sans';
+  
+  // Calculate styles for background image if present
+  const containerStyle = profile.bgImage 
+    ? { backgroundImage: `url(${profile.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } 
+    : {};
+    
+  const bgClass = profile.bgImage ? 'bg-no-repeat' : theme.bgClass;
 
   return (
     <div className="relative mx-auto border-gray-800 dark:border-gray-800 bg-gray-900 border-[14px] rounded-[2.5rem] h-[600px] w-[300px] sm:w-[340px] shadow-xl overflow-hidden">
@@ -18,8 +25,11 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ profile }) => {
       <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[178px] rounded-l-lg"></div>
       <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[17px] top-[142px] rounded-r-lg"></div>
       
-      <div className={`w-full h-full overflow-y-auto no-scrollbar ${theme.bgClass} ${theme.textClass} ${fontClass}`}>
-        <div className="px-6 py-12 flex flex-col items-center min-h-full">
+      <div 
+        className={`w-full h-full overflow-y-auto no-scrollbar ${bgClass} ${theme.textClass} ${fontClass}`}
+        style={containerStyle}
+      >
+        <div className={`px-6 py-12 flex flex-col items-center min-h-full ${profile.bgImage ? 'backdrop-blur-sm bg-black/10' : ''}`}>
           {/* Avatar */}
           <div className="mb-6 relative group">
             <div className={`w-24 h-24 rounded-full overflow-hidden ring-4 ring-opacity-20 ${theme.textClass === 'text-white' ? 'ring-white' : 'ring-black'}`}>
@@ -64,9 +74,11 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ profile }) => {
           </div>
 
           {/* Footer Branding */}
-          <div className="mt-8 pt-4 opacity-40 text-[10px] uppercase tracking-widest font-semibold">
-            BioMinimal
-          </div>
+          {profile.customFooterText && (
+            <div className="mt-8 pt-4 opacity-40 text-[10px] uppercase tracking-widest font-semibold">
+              {profile.customFooterText}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { Plus, Layout, BarChart3, Settings, Trash2, GripVertical, ArrowLeft, Check, ExternalLink, Palette, Share2, Twitter, Instagram, Github } from 'lucide-react';
+import { Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, Twitter, Instagram, Github, Globe, Image as ImageIcon } from 'lucide-react';
 import { ProfileData, LinkItem, ViewMode } from './types';
 import { INITIAL_PROFILE, THEMES } from './constants';
 import { PhonePreview } from './components/PhonePreview';
-import { getIcon } from './components/Icons';
-import { AnalyticsChart } from './components/AnalyticsChart';
 
 function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('landing');
   const [profile, setProfile] = useState<ProfileData>(INITIAL_PROFILE);
-  const [activeTab, setActiveTab] = useState<'links' | 'appearance' | 'stats'>('links');
+  const [activeTab, setActiveTab] = useState<'links' | 'appearance' | 'settings'>('links');
 
   // --- Actions ---
 
@@ -23,8 +21,7 @@ function App() {
       title: 'New Link',
       url: 'https://',
       icon: 'generic',
-      isActive: true,
-      clicks: 0
+      isActive: true
     };
     setProfile(prev => ({ ...prev, links: [...prev.links, newLink] }));
   };
@@ -43,8 +40,107 @@ function App() {
     }));
   };
 
-  const handlePublish = () => {
-    alert("In a real app, this would deploy your site to biominimal.cc/" + profile.name.toLowerCase().replace(/\s/g, ''));
+  const handleExport = () => {
+    const theme = THEMES.find(t => t.id === profile.themeId) || THEMES[0];
+    
+    const linksHtml = profile.links.filter(l => l.isActive).map(link => {
+        let iconName = link.icon;
+        if (iconName === 'generic') iconName = 'globe';
+        
+        return `
+          <a href="${link.url}" target="_blank" rel="noreferrer" class="block w-full px-4 py-3.5 rounded-xl transition-all duration-200 flex items-center justify-between group ${theme.cardBgClass} ${theme.cardHoverClass}">
+            <div class="flex items-center gap-3">
+              <span class="opacity-70 group-hover:opacity-100 transition-opacity">
+                <i data-lucide="${iconName}" class="w-5 h-5"></i>
+              </span>
+              <span class="font-medium text-sm">${link.title}</span>
+            </div>
+          </a>
+        `;
+    }).join('');
+
+    // Handle Background Image vs Theme Color
+    const bodyStyle = profile.bgImage 
+        ? `style="background-image: url('${profile.bgImage}'); background-size: cover; background-position: center;"` 
+        : '';
+    const bodyClass = profile.bgImage 
+        ? `${theme.textClass} ${theme.font === 'serif' ? 'font-serif' : 'font-sans'} min-h-screen flex flex-col` 
+        : `${theme.bgClass} ${theme.textClass} ${theme.font === 'serif' ? 'font-serif' : 'font-sans'} min-h-screen flex flex-col`;
+
+    const overlayClass = profile.bgImage ? 'backdrop-blur-sm bg-black/10' : '';
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${profile.metaTitle || profile.name}</title>
+    <meta name="description" content="${profile.metaDescription || profile.bio}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              serif: ['Newsreader', 'serif'],
+            },
+          }
+        }
+      }
+    </script>
+</head>
+<body class="${bodyClass}" ${bodyStyle}>
+    <div class="max-w-md mx-auto w-full px-6 py-12 flex flex-col items-center flex-1 ${overlayClass}">
+        <!-- Avatar -->
+        <div class="mb-6 relative group">
+            <div class="w-24 h-24 rounded-full overflow-hidden ring-4 ring-opacity-20 ${theme.textClass === 'text-white' ? 'ring-white' : 'ring-black'}">
+                <img src="${profile.avatarUrl}" alt="${profile.name}" class="w-full h-full object-cover" />
+            </div>
+        </div>
+
+        <!-- Header Info -->
+        <div class="text-center mb-8">
+            <h1 class="text-2xl font-bold tracking-tight mb-2">${profile.name}</h1>
+            <p class="text-sm opacity-80 leading-relaxed max-w-[250px] mx-auto">
+                ${profile.bio}
+            </p>
+        </div>
+
+        <!-- Links -->
+        <div class="w-full space-y-3 flex-1">
+            ${linksHtml}
+        </div>
+
+        <!-- Footer -->
+        ${profile.customFooterText ? `
+        <div class="mt-8 pt-4 opacity-40 text-[10px] uppercase tracking-widest font-semibold">
+            ${profile.customFooterText}
+        </div>
+        ` : ''}
+    </div>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'index.html';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    alert("Export complete! \n\nYour 'index.html' file is ready. You can upload this directly to GitHub Pages, Netlify, Vercel, or any standard web host.");
   };
 
   // --- Views ---
@@ -70,21 +166,21 @@ function App() {
         <main className="max-w-4xl mx-auto px-6 py-24 text-center">
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-8 text-gray-900">
             Your digital identity,<br />
-            <span className="text-gray-400">distilled.</span>
+            <span className="text-gray-400">self-hosted.</span>
           </h1>
           <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed">
-            The link-in-bio tool that respects your time and your aesthetic. 
-            Zero clutter, zero loading spinners, pure function.
+            Create a beautiful, fast link-in-bio page. Export as a single HTML file. 
+            Host it on GitHub, Netlify, or your own domain. Free forever.
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <button 
               onClick={() => setViewMode('editor')}
               className="bg-black text-white text-lg px-8 py-4 rounded-full hover:scale-105 transition-transform duration-200 font-medium shadow-xl shadow-gray-200"
             >
-              Create your page for free
+              Create Page
             </button>
             <button className="bg-gray-100 text-gray-900 text-lg px-8 py-4 rounded-full hover:bg-gray-200 transition-colors font-medium">
-              View Examples
+              Learn More
             </button>
           </div>
 
@@ -93,35 +189,35 @@ function App() {
               <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
                 <Layout className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-lg mb-2">Minimalist Design</h3>
-              <p className="text-gray-600 text-sm">Templates designed to get out of the way. Focus on your content, not our branding.</p>
+              <h3 className="font-bold text-lg mb-2">Pure HTML</h3>
+              <p className="text-gray-600 text-sm">No databases, no logins for your visitors. Just a fast, lightweight static file.</p>
             </div>
             <div className="p-6 bg-gray-50 rounded-2xl">
               <div className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                <BarChart3 className="w-5 h-5" />
+                <Globe className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-lg mb-2">Privacy-First Analytics</h3>
-              <p className="text-gray-600 text-sm">See what matters without tracking your visitors across the internet.</p>
+              <h3 className="font-bold text-lg mb-2">Total Control</h3>
+              <p className="text-gray-600 text-sm">You own the code. Edit the generated HTML manually if you want to tweak every pixel.</p>
             </div>
             <div className="p-6 bg-gray-50 rounded-2xl">
               <div className="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-4">
-                <ExternalLink className="w-5 h-5" />
+                <Settings className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-lg mb-2">Own Your Traffic</h3>
-              <p className="text-gray-600 text-sm">No walled gardens. Link anywhere. Integrate with your favorite tools seamlessly.</p>
+              <h3 className="font-bold text-lg mb-2">SEO Ready</h3>
+              <p className="text-gray-600 text-sm">Customize meta tags and descriptions to look great on search engines and social previews.</p>
             </div>
           </div>
         </main>
 
         <footer className="border-t border-gray-100 py-12 flex flex-col items-center gap-8">
           <div className="flex gap-8 text-gray-400">
-            <a href="#" className="hover:text-gray-900 transition-colors transform hover:scale-110 duration-200">
+            <a href="https://twitter.com" target="_blank" rel="noreferrer" className="hover:text-gray-900 transition-colors transform hover:scale-110 duration-200">
               <Twitter className="w-5 h-5" />
             </a>
-            <a href="#" className="hover:text-gray-900 transition-colors transform hover:scale-110 duration-200">
+            <a href="https://instagram.com" target="_blank" rel="noreferrer" className="hover:text-gray-900 transition-colors transform hover:scale-110 duration-200">
               <Instagram className="w-5 h-5" />
             </a>
-            <a href="#" className="hover:text-gray-900 transition-colors transform hover:scale-110 duration-200">
+            <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-gray-900 transition-colors transform hover:scale-110 duration-200">
               <Github className="w-5 h-5" />
             </a>
           </div>
@@ -150,10 +246,11 @@ function App() {
             <span className="font-bold text-lg tracking-tight">BioMinimal</span>
           </div>
           <button 
-            onClick={handlePublish}
-            className="text-sm font-medium bg-blue-600 text-white px-4 py-1.5 rounded-full hover:bg-blue-700 transition-colors flex items-center gap-2"
+            onClick={handleExport}
+            className="text-sm font-medium bg-black text-white px-4 py-1.5 rounded-full hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-sm"
+            title="Download HTML file"
           >
-            Publish <Share2 className="w-3 h-3" />
+            Export <Download className="w-3 h-3" />
           </button>
         </div>
 
@@ -173,10 +270,10 @@ function App() {
               Design
             </button>
             <button 
-              onClick={() => setActiveTab('stats')}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'stats' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'}`}
+              onClick={() => setActiveTab('settings')}
+              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'settings' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'}`}
             >
-              Stats
+              Settings
             </button>
           </div>
         </div>
@@ -193,7 +290,7 @@ function App() {
                   <div className="w-20 h-20 bg-gray-100 rounded-full overflow-hidden shrink-0 border border-gray-200 relative group cursor-pointer">
                     <img src={profile.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs">
-                      Change
+                      URL
                     </div>
                   </div>
                   <div className="flex-1 space-y-3">
@@ -209,6 +306,13 @@ function App() {
                       onChange={(e) => handleUpdateField('bio', e.target.value)}
                       className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-black/10"
                       placeholder="Short bio..."
+                    />
+                    <input 
+                      type="text" 
+                      value={profile.avatarUrl}
+                      onChange={(e) => handleUpdateField('avatarUrl', e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500 focus:outline-none focus:ring-2 focus:ring-black/10"
+                      placeholder="Avatar Image URL"
                     />
                   </div>
                 </div>
@@ -254,7 +358,7 @@ function App() {
                         </div>
                       </div>
                       
-                      {/* Expanded Edit State (Always expanded for simplicity in this demo) */}
+                      {/* Expanded Edit State */}
                       <div className="pl-7 space-y-2">
                          <input 
                             type="text" 
@@ -302,65 +406,91 @@ function App() {
           )}
 
           {activeTab === 'appearance' && (
-            <section className="space-y-6">
-              <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Themes</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {THEMES.map(theme => (
-                  <button
-                    key={theme.id}
-                    onClick={() => handleUpdateField('themeId', theme.id)}
-                    className={`
-                      relative h-24 rounded-xl border-2 transition-all overflow-hidden text-left p-3 flex flex-col justify-end
-                      ${profile.themeId === theme.id ? 'border-blue-600 ring-2 ring-blue-100' : 'border-transparent hover:scale-[1.02]'}
-                    `}
-                  >
-                    {/* Theme Preview Background */}
-                    <div className={`absolute inset-0 ${theme.bgClass}`}></div>
-                    
-                    {/* Theme Content Preview */}
-                    <div className={`relative z-10 ${theme.textClass} font-bold text-sm flex items-center gap-2`}>
-                      {profile.themeId === theme.id && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
-                      {theme.name}
-                    </div>
-                  </button>
-                ))}
+            <section className="space-y-8">
+              <div>
+                <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4">Themes</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {THEMES.map(theme => (
+                    <button
+                      key={theme.id}
+                      onClick={() => handleUpdateField('themeId', theme.id)}
+                      className={`
+                        relative h-24 rounded-xl border-2 transition-all overflow-hidden text-left p-3 flex flex-col justify-end
+                        ${profile.themeId === theme.id ? 'border-blue-600 ring-2 ring-blue-100' : 'border-transparent hover:scale-[1.02]'}
+                      `}
+                    >
+                      {/* Theme Preview Background */}
+                      <div className={`absolute inset-0 ${theme.bgClass}`}></div>
+                      
+                      {/* Theme Content Preview */}
+                      <div className={`relative z-10 ${theme.textClass} font-bold text-sm flex items-center gap-2`}>
+                        {profile.themeId === theme.id && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
+                        {theme.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-
-              <div className="p-4 bg-blue-50 rounded-xl text-blue-800 text-sm leading-relaxed">
-                <p><strong>Pro Tip:</strong> Keep your design simple. High contrast text ensures accessibility for all users.</p>
+              
+              <div>
+                 <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4">Custom Background</h3>
+                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                    <div className="flex items-center gap-3 text-sm text-gray-700">
+                      <ImageIcon className="w-4 h-4" />
+                      <span>Background Image URL</span>
+                    </div>
+                    <input 
+                      type="text" 
+                      value={profile.bgImage || ''}
+                      onChange={(e) => handleUpdateField('bgImage', e.target.value)}
+                      placeholder="https://example.com/image.jpg"
+                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                    />
+                    <p className="text-xs text-gray-500">Provide a direct URL to an image to override the theme background.</p>
+                 </div>
               </div>
             </section>
           )}
 
-          {activeTab === 'stats' && (
+          {activeTab === 'settings' && (
             <section className="space-y-6">
-              <div className="flex items-center justify-between">
-                 <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Overview</h3>
-                 <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white">
-                    <option>Last 7 Days</option>
-                    <option>Last 30 Days</option>
-                 </select>
-              </div>
-              
-              <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                 <div className="mb-4">
-                    <div className="text-3xl font-bold text-gray-900">1,480</div>
-                    <div className="text-sm text-gray-500">Total Views</div>
-                 </div>
-                 <AnalyticsChart />
+              <div className="p-4 bg-purple-50 rounded-xl text-purple-900 text-sm leading-relaxed mb-6">
+                These settings control how your site looks on Google and when shared on social media.
               </div>
 
-              <div className="space-y-2">
-                 <h4 className="font-semibold text-sm text-gray-700">Top Links</h4>
-                 {profile.links.slice(0, 3).map((link, idx) => (
-                    <div key={link.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                       <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold text-gray-400 w-4">0{idx + 1}</span>
-                          <span className="text-sm font-medium text-gray-700">{link.title}</span>
-                       </div>
-                       <span className="text-xs font-bold text-gray-900">{link.clicks} clicks</span>
-                    </div>
-                 ))}
+              <div className="space-y-4">
+                 <div>
+                   <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Meta Title (SEO)</label>
+                   <input 
+                      type="text" 
+                      value={profile.metaTitle || ''}
+                      onChange={(e) => handleUpdateField('metaTitle', e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                      placeholder={profile.name}
+                    />
+                 </div>
+
+                 <div>
+                   <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Meta Description</label>
+                   <textarea 
+                      value={profile.metaDescription || ''}
+                      onChange={(e) => handleUpdateField('metaDescription', e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none h-24 focus:outline-none focus:ring-2 focus:ring-black/10"
+                      placeholder={profile.bio}
+                    />
+                    <p className="text-xs text-gray-400 mt-1 text-right">Recommended: 150-160 characters</p>
+                 </div>
+
+                 <div>
+                   <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Footer Text</label>
+                   <input 
+                      type="text" 
+                      value={profile.customFooterText || ''}
+                      onChange={(e) => handleUpdateField('customFooterText', e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                      placeholder="Made with BioMinimal"
+                    />
+                 </div>
               </div>
             </section>
           )}

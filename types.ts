@@ -4,7 +4,6 @@ export type LinkItem = {
   url: string;
   icon: 'generic' | 'twitter' | 'instagram' | 'github' | 'linkedin' | 'youtube' | 'mail';
   isActive: boolean;
-  clicks: number;
 };
 
 export type ThemeConfig = {
@@ -24,6 +23,11 @@ export type ProfileData = {
   avatarUrl: string;
   links: LinkItem[];
   themeId: string;
+  // Static Site Config
+  bgImage?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  customFooterText?: string;
 };
 
 export type ViewMode = 'landing' | 'editor' | 'preview';
