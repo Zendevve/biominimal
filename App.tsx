@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Layout, BarChart3, Settings, Trash2, GripVertical, ArrowLeft, Check, ExternalLink, Palette, Share2 } from 'lucide-react';
+import { Plus, Layout, BarChart3, Settings, Trash2, GripVertical, ArrowLeft, Check, ExternalLink, Palette, Share2, Twitter, Instagram, Github } from 'lucide-react';
 import { ProfileData, LinkItem, ViewMode } from './types';
 import { INITIAL_PROFILE, THEMES } from './constants';
 import { PhonePreview } from './components/PhonePreview';
@@ -113,8 +113,21 @@ function App() {
           </div>
         </main>
 
-        <footer className="border-t border-gray-100 py-12 text-center text-gray-400 text-sm">
-          © 2024 BioMinimal Inc.
+        <footer className="border-t border-gray-100 py-12 flex flex-col items-center gap-8">
+          <div className="flex gap-8 text-gray-400">
+            <a href="#" className="hover:text-gray-900 transition-colors transform hover:scale-110 duration-200">
+              <Twitter className="w-5 h-5" />
+            </a>
+            <a href="#" className="hover:text-gray-900 transition-colors transform hover:scale-110 duration-200">
+              <Instagram className="w-5 h-5" />
+            </a>
+            <a href="#" className="hover:text-gray-900 transition-colors transform hover:scale-110 duration-200">
+              <Github className="w-5 h-5" />
+            </a>
+          </div>
+          <div className="text-center text-gray-400 text-sm">
+            © 2024 BioMinimal Inc. All rights reserved.
+          </div>
         </footer>
       </div>
     );
