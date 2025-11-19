@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, Twitter, Instagram, Github, Globe, Image as ImageIcon, Code, Palette } from 'lucide-react';
-import { ProfileData, LinkItem, ViewMode } from './types';
+import { Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, Twitter, Instagram, Github, Globe, Image as ImageIcon, Code, Palette, Smartphone, Tablet, Monitor, Eye, Edit3 } from 'lucide-react';
+import { ProfileData, LinkItem, ViewMode, DeviceMode } from './types';
 import { INITIAL_PROFILE, THEMES } from './constants';
-import { PhonePreview } from './components/PhonePreview';
+import { DevicePreview } from './components/PhonePreview';
 import { IconSelector } from './components/IconSelector';
 import { getIcon } from './components/Icons';
 
@@ -12,6 +12,10 @@ function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('landing');
   const [profile, setProfile] = useState<ProfileData>(INITIAL_PROFILE);
   const [activeTab, setActiveTab] = useState<'links' | 'appearance' | 'settings'>('links');
+  
+  // Preview State
+  const [deviceMode, setDeviceMode] = useState<DeviceMode>('mobile');
+  const [mobilePreviewActive, setMobilePreviewActive] = useState(false);
 
   // --- Actions ---
 
@@ -81,7 +85,7 @@ function App() {
 
     // Handle Background Image vs Theme Color
     const bodyStyle = profile.bgImage 
-        ? `style="background-image: url('${profile.bgImage}'); background-size: cover; background-position: center;"` 
+        ? `style="background-image: url('${profile.bgImage}'); background-size: cover; background-position: center; background-attachment: fixed;"` 
         : '';
     const bodyClass = profile.bgImage 
         ? `${theme.textClass} ${theme.font === 'serif' ? 'font-serif' : 'font-sans'} min-h-screen flex flex-col` 
@@ -169,9 +173,8 @@ function App() {
         <nav className="max-w-6xl mx-auto px-6 py-6 flex justify-between items-center">
           <div className="text-xl font-bold tracking-tighter">BioMinimal.</div>
           <div className="flex gap-6 text-sm font-medium text-gray-600 items-center">
-            <a href="#" className="hover:text-black">Templates</a>
-            <a href="#" className="hover:text-black">Pricing</a>
-            <button className="text-black hover:underline">Login</button>
+            <a href="#" className="hover:text-black hidden sm:block">Templates</a>
+            <a href="#" className="hover:text-black hidden sm:block">Pricing</a>
             <button 
               onClick={() => setViewMode('editor')}
               className="bg-black text-white px-4 py-2 rounded-full hover:bg-gray-800 transition-colors"
@@ -250,10 +253,10 @@ function App() {
   // --- Editor Layout ---
 
   return (
-    <div className="h-screen flex flex-col md:flex-row bg-canvas overflow-hidden">
+    <div className="h-screen flex flex-col md:flex-row bg-canvas overflow-hidden relative">
       
-      {/* Left Sidebar (Editor Controls) */}
-      <div className="w-full md:w-[450px] bg-white border-r border-gray-200 flex flex-col h-full z-20 shadow-xl md:shadow-none">
+      {/* Left Sidebar (Editor Controls) - Hidden on Mobile when Preview is Active */}
+      <div className={`w-full md:w-[450px] bg-white border-r border-gray-200 flex-col h-full z-20 shadow-xl md:shadow-none ${mobilePreviewActive ? 'hidden md:flex' : 'flex'}`}>
         
         {/* Toolbar Header */}
         <div className="h-16 border-b border-gray-100 flex items-center justify-between px-6 shrink-0">
@@ -590,17 +593,58 @@ function App() {
         </div>
       </div>
 
-      {/* Main Stage (Right Side - Preview) */}
-      <div className="flex-1 bg-gray-100 flex items-center justify-center relative overflow-hidden p-6">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+      {/* Main Stage (Right Side - Preview) - Hidden on Mobile unless Preview is Active */}
+      <div className={`flex-1 bg-gray-100 flex-col items-center justify-center relative overflow-hidden ${mobilePreviewActive ? 'flex' : 'hidden md:flex'}`}>
         
-        <div className="relative z-10 w-full max-w-md animate-in fade-in zoom-in duration-500">
-           <PhonePreview profile={profile} />
-           <div className="text-center mt-8 text-gray-400 text-sm font-medium flex items-center justify-center gap-2">
-             <Layout className="w-4 h-4" /> Live Preview
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-40 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
+        
+        {/* Device Switcher Toolbar (Visible on large screens or in preview mode) */}
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur shadow-sm border border-gray-200 rounded-full p-1 flex gap-1 z-30">
+            <button 
+                onClick={() => setDeviceMode('mobile')}
+                className={`p-2 rounded-full transition-colors ${deviceMode === 'mobile' ? 'bg-gray-100 text-black' : 'text-gray-400 hover:text-gray-600'}`}
+                title="Mobile View"
+            >
+                <Smartphone className="w-4 h-4" />
+            </button>
+            <button 
+                onClick={() => setDeviceMode('tablet')}
+                className={`p-2 rounded-full transition-colors ${deviceMode === 'tablet' ? 'bg-gray-100 text-black' : 'text-gray-400 hover:text-gray-600'}`}
+                title="Tablet View"
+            >
+                <Tablet className="w-4 h-4" />
+            </button>
+            <button 
+                onClick={() => setDeviceMode('desktop')}
+                className={`p-2 rounded-full transition-colors ${deviceMode === 'desktop' ? 'bg-gray-100 text-black' : 'text-gray-400 hover:text-gray-600'}`}
+                title="Desktop View"
+            >
+                <Monitor className="w-4 h-4" />
+            </button>
+        </div>
+
+        <div className="relative z-10 w-full h-full overflow-hidden flex items-center justify-center p-4 sm:p-8 md:p-12 lg:p-16">
+           <div className="animate-in fade-in zoom-in duration-300 origin-center w-full h-full flex items-center justify-center">
+               <DevicePreview profile={profile} mode={deviceMode} />
            </div>
         </div>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 bg-white shadow-xl shadow-black/10 rounded-full p-1.5 flex gap-1 z-50 border border-gray-200">
+         <button 
+            onClick={() => setMobilePreviewActive(false)} 
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-colors ${!mobilePreviewActive ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+         >
+            <Edit3 className="w-4 h-4" /> Editor
+         </button>
+         <button 
+            onClick={() => setMobilePreviewActive(true)} 
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium transition-colors ${mobilePreviewActive ? 'bg-black text-white' : 'text-gray-500 hover:bg-gray-100'}`}
+         >
+            <Eye className="w-4 h-4" /> Preview
+         </button>
       </div>
 
     </div>

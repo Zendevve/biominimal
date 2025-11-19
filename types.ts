@@ -35,3 +35,4 @@ export type ProfileData = {
 };
 
 export type ViewMode = 'landing' | 'editor' | 'preview';
+export type DeviceMode = 'mobile' | 'tablet' | 'desktop';
