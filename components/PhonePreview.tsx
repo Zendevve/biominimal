@@ -63,26 +63,34 @@ export const PhonePreview: React.FC<PhonePreviewProps> = ({ profile }) => {
 
           {/* Links */}
           <div className="w-full space-y-3 flex-1 bio-links">
-            {profile.links.filter(l => l.isActive).map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                target="_blank"
-                rel="noreferrer"
-                className={`
-                  block w-full px-4 py-3.5 rounded-xl transition-all duration-200 flex items-center justify-between group bio-link-item
-                  ${theme.cardBgClass} 
-                  ${theme.cardHoverClass}
-                `}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="opacity-70 group-hover:opacity-100 transition-opacity bio-link-icon">
-                    {getIcon(link.icon)}
-                  </span>
-                  <span className="font-medium text-sm bio-link-text">{link.title}</span>
-                </div>
-              </a>
-            ))}
+            {profile.links.filter(l => l.isActive).map((link) => {
+              const customStyle = {
+                ...(link.bgColor ? { backgroundColor: link.bgColor, borderColor: link.bgColor } : {}),
+                ...(link.textColor ? { color: link.textColor } : {}),
+              };
+
+              return (
+                <a
+                  key={link.id}
+                  href={link.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={customStyle}
+                  className={`
+                    block w-full px-4 py-3.5 rounded-xl transition-all duration-200 flex items-center justify-between group bio-link-item
+                    ${theme.cardBgClass} 
+                    ${!link.bgColor ? theme.cardHoverClass : 'hover:brightness-105'}
+                  `}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={`transition-opacity bio-link-icon ${link.textColor ? '' : 'opacity-70 group-hover:opacity-100'}`}>
+                      {getIcon(link.icon)}
+                    </span>
+                    <span className="font-medium text-sm bio-link-text">{link.title}</span>
+                  </div>
+                </a>
+              );
+            })}
           </div>
 
           {/* Footer Branding */}

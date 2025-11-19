@@ -1,10 +1,12 @@
 
 import React, { useState } from 'react';
-import { Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, Twitter, Instagram, Github, Globe, Image as ImageIcon, Code } from 'lucide-react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, Twitter, Instagram, Github, Globe, Image as ImageIcon, Code, Palette } from 'lucide-react';
 import { ProfileData, LinkItem, ViewMode } from './types';
 import { INITIAL_PROFILE, THEMES } from './constants';
 import { PhonePreview } from './components/PhonePreview';
 import { IconSelector } from './components/IconSelector';
+import { getIcon } from './components/Icons';
 
 function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('landing');
@@ -46,14 +48,30 @@ function App() {
     const theme = THEMES.find(t => t.id === profile.themeId) || THEMES[0];
     
     const linksHtml = profile.links.filter(l => l.isActive).map(link => {
-        let iconName = link.icon;
-        if (iconName === 'generic') iconName = 'globe'; // Legacy fallback
+        // Render the icon to a static SVG string
+        const iconSvg = renderToStaticMarkup(getIcon(link.icon, "w-5 h-5"));
         
+        // Construct custom styles
+        let styleAttr = '';
+        if (link.bgColor || link.textColor) {
+            const styles = [];
+            if (link.bgColor) {
+                styles.push(`background-color: ${link.bgColor}`);
+                styles.push(`border-color: ${link.bgColor}`);
+            }
+            if (link.textColor) styles.push(`color: ${link.textColor}`);
+            styleAttr = `style="${styles.join('; ')}"`;
+        }
+
+        // Determine hover class based on whether custom bg is present
+        const hoverClass = !link.bgColor ? theme.cardHoverClass : 'hover:brightness-105';
+        const iconOpacityClass = link.textColor ? '' : 'opacity-70 group-hover:opacity-100';
+
         return `
-          <a href="${link.url}" target="_blank" rel="noreferrer" class="block w-full px-4 py-3.5 rounded-xl transition-all duration-200 flex items-center justify-between group bio-link-item ${theme.cardBgClass} ${theme.cardHoverClass}">
+          <a href="${link.url}" target="_blank" rel="noreferrer" ${styleAttr} class="block w-full px-4 py-3.5 rounded-xl transition-all duration-200 flex items-center justify-between group bio-link-item ${theme.cardBgClass} ${hoverClass}">
             <div class="flex items-center gap-3">
-              <span class="opacity-70 group-hover:opacity-100 transition-opacity bio-link-icon">
-                <i data-lucide="${iconName}" class="w-5 h-5"></i>
+              <span class="transition-opacity bio-link-icon ${iconOpacityClass}">
+                ${iconSvg}
               </span>
               <span class="font-medium text-sm bio-link-text">${link.title}</span>
             </div>
@@ -82,7 +100,6 @@ function App() {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Newsreader:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
       ${profile.customCss || ''}
     </style>
@@ -128,10 +145,6 @@ function App() {
         </div>
         ` : ''}
     </div>
-
-    <script>
-        lucide.createIcons();
-    </script>
 </body>
 </html>`;
 
@@ -364,7 +377,7 @@ function App() {
                       </div>
                       
                       {/* Expanded Edit State */}
-                      <div className="pl-7 space-y-2">
+                      <div className="pl-7 space-y-3">
                          <input 
                             type="text" 
                             value={link.title}
@@ -388,6 +401,62 @@ function App() {
                                     onChange={(val) => handleUpdateLink(link.id, 'icon', val)}
                                 />
                              </div>
+                          </div>
+
+                          {/* Link Styling */}
+                          <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex gap-4">
+                              <div className="flex-1">
+                                  <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Background</label>
+                                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md p-1 pl-2">
+                                      <div className="relative w-5 h-5 rounded-full overflow-hidden border border-gray-200 shadow-sm">
+                                        <input 
+                                            type="color" 
+                                            value={link.bgColor || '#ffffff'}
+                                            onChange={(e) => handleUpdateLink(link.id, 'bgColor', e.target.value)}
+                                            className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 border-0 opacity-0"
+                                        />
+                                        <div className="w-full h-full" style={{ backgroundColor: link.bgColor || 'transparent' }} />
+                                      </div>
+                                      <input 
+                                          type="text"
+                                          value={link.bgColor || ''}
+                                          onChange={(e) => handleUpdateLink(link.id, 'bgColor', e.target.value)}
+                                          placeholder="Default"
+                                          className="w-full text-xs outline-none text-gray-600 bg-transparent"
+                                      />
+                                      {link.bgColor && (
+                                        <button onClick={() => handleUpdateLink(link.id, 'bgColor', '')} className="text-gray-400 hover:text-red-500">
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      )}
+                                  </div>
+                              </div>
+                              <div className="flex-1">
+                                  <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Text</label>
+                                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md p-1 pl-2">
+                                      <div className="relative w-5 h-5 rounded-full overflow-hidden border border-gray-200 shadow-sm">
+                                        <input 
+                                            type="color" 
+                                            value={link.textColor || '#000000'}
+                                            onChange={(e) => handleUpdateLink(link.id, 'textColor', e.target.value)}
+                                            className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 border-0 opacity-0"
+                                        />
+                                        <div className="w-full h-full" style={{ backgroundColor: link.textColor || 'transparent' }} />
+                                      </div>
+                                      <input 
+                                          type="text"
+                                          value={link.textColor || ''}
+                                          onChange={(e) => handleUpdateLink(link.id, 'textColor', e.target.value)}
+                                          placeholder="Default"
+                                          className="w-full text-xs outline-none text-gray-600 bg-transparent"
+                                      />
+                                      {link.textColor && (
+                                        <button onClick={() => handleUpdateLink(link.id, 'textColor', '')} className="text-gray-400 hover:text-red-500">
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      )}
+                                  </div>
+                              </div>
                           </div>
                       </div>
                     </div>

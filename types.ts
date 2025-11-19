@@ -5,6 +5,8 @@ export type LinkItem = {
   url: string;
   icon: string;
   isActive: boolean;
+  bgColor?: string;
+  textColor?: string;
 };
 
 export type ThemeConfig = {
