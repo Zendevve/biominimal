@@ -1,10 +1,11 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { 
   Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, 
   Twitter, Instagram, Github, Globe, Image as ImageIcon, Code, Palette, 
-  Smartphone, Tablet, Monitor, Eye, Edit3, Upload, X, RotateCw
+  Smartphone, Tablet, Monitor, Eye, Edit3, Upload, X, RotateCw,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { ProfileData, LinkItem, ViewMode, DeviceMode, SocialItem } from './types';
 import { INITIAL_PROFILE, THEMES } from './constants';
@@ -21,6 +22,7 @@ function App() {
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('mobile');
   const [isRotated, setIsRotated] = useState(false);
   const [mobilePreviewActive, setMobilePreviewActive] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Drag & Drop State
   const [draggedLinkIndex, setDraggedLinkIndex] = useState<number | null>(null);
@@ -28,6 +30,17 @@ function App() {
   // File Input Refs
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-expand sidebar on mobile resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        setIsSidebarCollapsed(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // --- Actions ---
 
@@ -333,404 +346,477 @@ function App() {
   return (
     <div className="h-screen flex flex-col md:flex-row bg-canvas overflow-hidden relative">
       
-      {/* Left Sidebar (Editor Controls) - Hidden on Mobile when Preview is Active */}
-      <div className={`w-full md:w-[450px] bg-white border-r border-gray-200 flex-col h-full z-20 shadow-xl md:shadow-none ${mobilePreviewActive ? 'hidden md:flex' : 'flex'}`}>
+      {/* Left Sidebar (Editor Controls) - Collapsible on Desktop */}
+      <div className={`
+        bg-white border-r border-gray-200 flex-col h-full z-20 shadow-xl md:shadow-none transition-[width] duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1.0)]
+        ${mobilePreviewActive ? 'hidden md:flex' : 'flex'}
+        ${isSidebarCollapsed ? 'w-full md:w-[80px]' : 'w-full md:w-[450px]'}
+      `}>
         
         {/* Toolbar Header */}
-        <div className="h-16 border-b border-gray-100 flex items-center justify-between px-6 shrink-0">
-          <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setViewMode('landing')}>
-            <div className="bg-black text-white p-1 rounded-md group-hover:bg-gray-800">
-              <ArrowLeft className="w-4 h-4" />
-            </div>
-            <span className="font-bold text-lg tracking-tight">BioMinimal</span>
-          </div>
-          <button 
-            onClick={handleExport}
-            className="text-sm font-medium bg-black text-white px-4 py-1.5 rounded-full hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-sm"
-            title="Download HTML file"
-          >
-            Export <Download className="w-3 h-3" />
-          </button>
-        </div>
-
-        {/* Tabs */}
-        <div className="px-6 pt-6 pb-2">
-          <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto">
-            {['links', 'appearance', 'settings'].map((tab) => (
-               <button 
-                key={tab}
-                onClick={() => setActiveTab(tab as any)}
-                className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all capitalize whitespace-nowrap ${activeTab === tab ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'}`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-8 pb-24 scrollbar-thin scrollbar-thumb-gray-200">
-          
-          {activeTab === 'links' && (
-            <>
-              {/* Profile Section */}
-              <section className="space-y-4">
-                <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Profile</h3>
-                <div className="flex gap-4 items-start">
-                  <div className="relative group">
-                    <div className="w-20 h-20 bg-gray-100 rounded-full overflow-hidden shrink-0 border border-gray-200">
-                      <img src={profile.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                    </div>
-                    <button 
-                      onClick={() => avatarInputRef.current?.click()}
-                      className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer"
-                    >
-                       <Upload className="w-5 h-5 text-white" />
-                    </button>
-                    <input 
-                      type="file" 
-                      ref={avatarInputRef} 
-                      className="hidden" 
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, 'avatarUrl')}
-                    />
-                  </div>
-                  <div className="flex-1 space-y-3">
-                    <input 
-                      type="text" 
-                      value={profile.name}
-                      onChange={(e) => handleUpdateField('name', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black/10"
-                      placeholder="Your Name"
-                    />
-                    <textarea 
-                      value={profile.bio}
-                      onChange={(e) => handleUpdateField('bio', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-black/10"
-                      placeholder="Short bio..."
-                    />
-                  </div>
+        <div className={`h-16 border-b border-gray-100 flex items-center shrink-0 ${isSidebarCollapsed ? 'justify-center' : 'justify-between px-6'}`}>
+          {!isSidebarCollapsed ? (
+             <>
+              <div className="flex items-center gap-2 cursor-pointer group" onClick={() => setViewMode('landing')}>
+                <div className="bg-black text-white p-1 rounded-md group-hover:bg-gray-800">
+                  <ArrowLeft className="w-4 h-4" />
                 </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Social Icons Section */}
-              <section className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Social Icons</h3>
-                  <button 
-                    onClick={handleAddSocial}
-                    className="text-xs flex items-center gap-1 bg-gray-100 text-gray-600 px-2 py-1 rounded hover:bg-gray-200"
-                  >
-                    <Plus className="w-3 h-3" /> Add Icon
-                  </button>
-                </div>
-                
-                <div className="grid grid-cols-1 gap-2">
-                  {profile.socials.map((social) => (
-                    <div key={social.id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                      <div className="w-[120px]">
-                         <IconSelector 
-                            value={social.platform}
-                            onChange={(val) => handleUpdateSocial(social.id, 'platform', val)}
-                         />
-                      </div>
-                      <input 
-                         type="text" 
-                         value={social.url}
-                         onChange={(e) => handleUpdateSocial(social.id, 'url', e.target.value)}
-                         className="flex-1 bg-transparent text-sm outline-none min-w-0"
-                         placeholder="https://..."
-                      />
-                      <button 
-                        onClick={() => handleDeleteSocial(social.id)}
-                        className="text-gray-400 hover:text-red-500 p-1"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <hr className="border-gray-100" />
-
-              {/* Links Section */}
-              <section className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Links</h3>
-                  <button 
-                    onClick={handleAddLink}
-                    className="text-xs flex items-center gap-1 bg-black text-white px-2 py-1 rounded hover:bg-gray-800"
-                  >
-                    <Plus className="w-3 h-3" /> Add Link
-                  </button>
-                </div>
-
-                <div className="space-y-3" onDragOver={(e) => e.preventDefault()}>
-                  {profile.links.map((link, index) => (
-                    <div 
-                      key={link.id} 
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, index)}
-                      onDragOver={(e) => handleDragOver(e, index)}
-                      onDrop={(e) => handleDrop(e, index)}
-                      className={`
-                        bg-white border border-gray-200 rounded-xl p-3 shadow-sm group hover:border-gray-300 transition-all
-                        ${draggedLinkIndex === index ? 'opacity-40 border-dashed border-2 border-gray-400' : ''}
-                      `}
-                    >
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="cursor-move text-gray-300 hover:text-gray-600 p-1 rounded hover:bg-gray-100">
-                          <GripVertical className="w-4 h-4" />
-                        </div>
-                        <div className="flex-1 font-semibold text-sm text-gray-800 truncate">
-                          {link.title || 'Untitled Link'}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => handleUpdateLink(link.id, 'isActive', !link.isActive)}
-                            className={`w-8 h-4 rounded-full relative transition-colors ${link.isActive ? 'bg-green-500' : 'bg-gray-200'}`}
-                          >
-                            <div className={`w-2 h-2 bg-white rounded-full absolute top-1 transition-all ${link.isActive ? 'left-5' : 'left-1'}`} />
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteLink(link.id)}
-                            className="text-gray-300 hover:text-red-500 transition-colors p-1"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {/* Expanded Edit State */}
-                      <div className="pl-7 space-y-3">
-                         <input 
-                            type="text" 
-                            value={link.title}
-                            onChange={(e) => handleUpdateLink(link.id, 'title', e.target.value)}
-                            className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-gray-400 transition-colors"
-                            placeholder="Link Title"
-                          />
-                          <div className="flex gap-2">
-                             <div className="relative flex-1">
-                                <input 
-                                  type="text" 
-                                  value={link.url}
-                                  onChange={(e) => handleUpdateLink(link.id, 'url', e.target.value)}
-                                  className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-gray-400 transition-colors text-gray-600"
-                                  placeholder="https://..."
-                                />
-                             </div>
-                             <div className="w-[140px]">
-                                <IconSelector 
-                                    value={link.icon}
-                                    onChange={(val) => handleUpdateLink(link.id, 'icon', val)}
-                                />
-                             </div>
-                          </div>
-
-                          {/* Link Styling */}
-                          <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex gap-4">
-                              <div className="flex-1">
-                                  <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Background</label>
-                                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md p-1 pl-2">
-                                      <div className="relative w-5 h-5 rounded-full overflow-hidden border border-gray-200 shadow-sm">
-                                        <input 
-                                            type="color" 
-                                            value={link.bgColor || '#ffffff'}
-                                            onChange={(e) => handleUpdateLink(link.id, 'bgColor', e.target.value)}
-                                            className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 border-0 opacity-0"
-                                        />
-                                        <div className="w-full h-full" style={{ backgroundColor: link.bgColor || 'transparent' }} />
-                                      </div>
-                                      <input 
-                                          type="text"
-                                          value={link.bgColor || ''}
-                                          onChange={(e) => handleUpdateLink(link.id, 'bgColor', e.target.value)}
-                                          placeholder="Default"
-                                          className="w-full text-xs outline-none text-gray-600 bg-transparent"
-                                      />
-                                      {link.bgColor && (
-                                        <button onClick={() => handleUpdateLink(link.id, 'bgColor', '')} className="text-gray-400 hover:text-red-500">
-                                            <Trash2 className="w-3 h-3" />
-                                        </button>
-                                      )}
-                                  </div>
-                              </div>
-                              <div className="flex-1">
-                                  <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Text</label>
-                                  <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md p-1 pl-2">
-                                      <div className="relative w-5 h-5 rounded-full overflow-hidden border border-gray-200 shadow-sm">
-                                        <input 
-                                            type="color" 
-                                            value={link.textColor || '#000000'}
-                                            onChange={(e) => handleUpdateLink(link.id, 'textColor', e.target.value)}
-                                            className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 border-0 opacity-0"
-                                        />
-                                        <div className="w-full h-full" style={{ backgroundColor: link.textColor || 'transparent' }} />
-                                      </div>
-                                      <input 
-                                          type="text"
-                                          value={link.textColor || ''}
-                                          onChange={(e) => handleUpdateLink(link.id, 'textColor', e.target.value)}
-                                          placeholder="Default"
-                                          className="w-full text-xs outline-none text-gray-600 bg-transparent"
-                                      />
-                                      {link.textColor && (
-                                        <button onClick={() => handleUpdateLink(link.id, 'textColor', '')} className="text-gray-400 hover:text-red-500">
-                                            <Trash2 className="w-3 h-3" />
-                                        </button>
-                                      )}
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {profile.links.length === 0 && (
-                    <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-xl">
-                      No links yet. Add one to get started!
-                    </div>
-                  )}
-                </div>
-              </section>
-            </>
-          )}
-
-          {activeTab === 'appearance' && (
-            <section className="space-y-8">
-              <div>
-                <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4">Themes</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {THEMES.map(theme => (
-                    <button
-                      key={theme.id}
-                      onClick={() => handleUpdateField('themeId', theme.id)}
-                      className={`
-                        relative h-24 rounded-xl border-2 transition-all overflow-hidden text-left p-3 flex flex-col justify-end
-                        ${profile.themeId === theme.id ? 'border-blue-600 ring-2 ring-blue-100' : 'border-transparent hover:scale-[1.02]'}
-                      `}
-                    >
-                      {/* Theme Preview Background */}
-                      <div className={`absolute inset-0 ${theme.bgClass}`}></div>
-                      
-                      {/* Theme Content Preview */}
-                      <div className={`relative z-10 ${theme.textClass} font-bold text-sm flex items-center gap-2`}>
-                        {profile.themeId === theme.id && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
-                        {theme.name}
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                <span className="font-bold text-lg tracking-tight">BioMinimal</span>
               </div>
-              
-              <div>
-                 <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4">Custom Background</h3>
-                 <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
-                    <div className="flex items-center gap-3 text-sm text-gray-700">
-                      <ImageIcon className="w-4 h-4" />
-                      <span>Background Image</span>
-                    </div>
-                    <div className="flex gap-2">
-                        <input 
-                            type="text" 
-                            value={profile.bgImage || ''}
-                            onChange={(e) => handleUpdateField('bgImage', e.target.value)}
-                            placeholder="https://example.com/image.jpg"
-                            className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-                        />
+              <div className="flex items-center gap-2">
+                <button 
+                    onClick={handleExport}
+                    className="text-sm font-medium bg-black text-white px-4 py-1.5 rounded-full hover:bg-gray-800 transition-colors flex items-center gap-2 shadow-sm"
+                    title="Download HTML file"
+                >
+                    Export <Download className="w-3 h-3" />
+                </button>
+                <button 
+                    onClick={() => setIsSidebarCollapsed(true)} 
+                    className="hidden md:block p-2 hover:bg-gray-100 rounded-md text-gray-500 transition-colors"
+                    title="Collapse sidebar"
+                >
+                    <ChevronLeft className="w-4 h-4" />
+                </button>
+              </div>
+             </>
+          ) : (
+            <button 
+                onClick={() => setIsSidebarCollapsed(false)} 
+                className="p-2 hover:bg-gray-100 rounded-md text-gray-500 transition-colors"
+                title="Expand sidebar"
+            >
+                <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Collapsed Navigation (Desktop Only) */}
+        {isSidebarCollapsed && (
+            <div className="hidden md:flex flex-col items-center py-6 gap-6 h-full overflow-y-auto">
+                <button
+                    onClick={() => setActiveTab('links')}
+                    className={`p-3 rounded-xl transition-all ${activeTab === 'links' ? 'bg-black text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-black'}`}
+                    title="Links"
+                >
+                    <Layout className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={() => setActiveTab('appearance')}
+                    className={`p-3 rounded-xl transition-all ${activeTab === 'appearance' ? 'bg-black text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-black'}`}
+                    title="Appearance"
+                >
+                    <Palette className="w-5 h-5" />
+                </button>
+                <button
+                    onClick={() => setActiveTab('settings')}
+                    className={`p-3 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-black text-white shadow-md' : 'text-gray-400 hover:bg-gray-50 hover:text-black'}`}
+                    title="Settings"
+                >
+                    <Settings className="w-5 h-5" />
+                </button>
+
+                <div className="w-8 h-px bg-gray-100 my-2" />
+
+                <button
+                    onClick={handleExport}
+                    className="p-3 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-black transition-all"
+                    title="Export"
+                >
+                    <Download className="w-5 h-5" />
+                </button>
+
+                <button
+                    onClick={() => setViewMode('landing')}
+                    className="p-3 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-red-500 transition-all mt-auto mb-4"
+                    title="Exit"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+                </button>
+            </div>
+        )}
+
+        {/* Expanded Content Area */}
+        <div className={`${isSidebarCollapsed ? 'hidden md:hidden' : 'flex flex-col h-full overflow-hidden'}`}>
+            {/* Tabs */}
+            <div className="px-6 pt-6 pb-2">
+                <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto">
+                    {['links', 'appearance', 'settings'].map((tab) => (
+                    <button 
+                        key={tab}
+                        onClick={() => setActiveTab(tab as any)}
+                        className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all capitalize whitespace-nowrap ${activeTab === tab ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        {tab}
+                    </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-8 pb-24 scrollbar-thin scrollbar-thumb-gray-200">
+            
+            {activeTab === 'links' && (
+                <>
+                {/* Profile Section */}
+                <section className="space-y-4">
+                    <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Profile</h3>
+                    <div className="flex gap-4 items-start">
+                    <div className="relative group">
+                        <div className="w-20 h-20 bg-gray-100 rounded-full overflow-hidden shrink-0 border border-gray-200">
+                        <img src={profile.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                        </div>
                         <button 
-                            onClick={() => bgInputRef.current?.click()}
-                            className="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                        onClick={() => avatarInputRef.current?.click()}
+                        className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer"
                         >
-                            <Upload className="w-4 h-4 text-gray-600" />
+                        <Upload className="w-5 h-5 text-white" />
                         </button>
                         <input 
-                            type="file" 
-                            ref={bgInputRef} 
-                            className="hidden" 
-                            accept="image/*"
-                            onChange={(e) => handleImageUpload(e, 'bgImage')}
+                        type="file" 
+                        ref={avatarInputRef} 
+                        className="hidden" 
+                        accept="image/*"
+                        onChange={(e) => handleImageUpload(e, 'avatarUrl')}
                         />
                     </div>
-                    <p className="text-xs text-gray-500">Enter a URL or upload a file (converted to base64).</p>
-                 </div>
-              </div>
+                    <div className="flex-1 space-y-3">
+                        <input 
+                        type="text" 
+                        value={profile.name}
+                        onChange={(e) => handleUpdateField('name', e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-black/10"
+                        placeholder="Your Name"
+                        />
+                        <textarea 
+                        value={profile.bio}
+                        onChange={(e) => handleUpdateField('bio', e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-black/10"
+                        placeholder="Short bio..."
+                        />
+                    </div>
+                    </div>
+                </section>
 
-              <div>
-                <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4">Custom CSS</h3>
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
-                   <div className="flex items-center gap-3 text-sm text-gray-700">
-                      <Code className="w-4 h-4" />
-                      <span>CSS Overrides</span>
-                   </div>
-                   <textarea
-                      value={profile.customCss || ''}
-                      onChange={(e) => handleUpdateField('customCss', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-900 text-green-400 font-mono text-xs rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600 h-32"
-                      placeholder="body { background: #000; }&#10;.bio-avatar { border-radius: 0; }"
-                    />
-                   <div className="text-[10px] text-gray-500 space-y-1">
-                      <p>Available classes:</p>
-                      <div className="flex flex-wrap gap-1">
-                         <code className="bg-gray-100 px-1 rounded">.bio-avatar</code>
-                         <code className="bg-gray-100 px-1 rounded">.bio-name</code>
-                         <code className="bg-gray-100 px-1 rounded">.bio-description</code>
-                         <code className="bg-gray-100 px-1 rounded">.bio-socials</code>
-                         <code className="bg-gray-100 px-1 rounded">.bio-links</code>
-                         <code className="bg-gray-100 px-1 rounded">.bio-link-item</code>
-                      </div>
-                   </div>
+                <hr className="border-gray-100" />
+
+                {/* Social Icons Section */}
+                <section className="space-y-4">
+                    <div className="flex justify-between items-center">
+                    <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Social Icons</h3>
+                    <button 
+                        onClick={handleAddSocial}
+                        className="text-xs flex items-center gap-1 bg-gray-100 text-gray-600 px-2 py-1 rounded hover:bg-gray-200"
+                    >
+                        <Plus className="w-3 h-3" /> Add Icon
+                    </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-2">
+                    {profile.socials.map((social) => (
+                        <div key={social.id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                        <div className="w-[120px]">
+                            <IconSelector 
+                                value={social.platform}
+                                onChange={(val) => handleUpdateSocial(social.id, 'platform', val)}
+                            />
+                        </div>
+                        <input 
+                            type="text" 
+                            value={social.url}
+                            onChange={(e) => handleUpdateSocial(social.id, 'url', e.target.value)}
+                            className="flex-1 bg-transparent text-sm outline-none min-w-0"
+                            placeholder="https://..."
+                        />
+                        <button 
+                            onClick={() => handleDeleteSocial(social.id)}
+                            className="text-gray-400 hover:text-red-500 p-1"
+                        >
+                            <X className="w-3 h-3" />
+                        </button>
+                        </div>
+                    ))}
+                    </div>
+                </section>
+
+                <hr className="border-gray-100" />
+
+                {/* Links Section */}
+                <section className="space-y-4">
+                    <div className="flex justify-between items-center">
+                    <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Links</h3>
+                    <button 
+                        onClick={handleAddLink}
+                        className="text-xs flex items-center gap-1 bg-black text-white px-2 py-1 rounded hover:bg-gray-800"
+                    >
+                        <Plus className="w-3 h-3" /> Add Link
+                    </button>
+                    </div>
+
+                    <div className="space-y-3" onDragOver={(e) => e.preventDefault()}>
+                    {profile.links.map((link, index) => (
+                        <div 
+                        key={link.id} 
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDrop={(e) => handleDrop(e, index)}
+                        className={`
+                            bg-white border border-gray-200 rounded-xl p-3 shadow-sm group hover:border-gray-300 transition-all
+                            ${draggedLinkIndex === index ? 'opacity-40 border-dashed border-2 border-gray-400' : ''}
+                        `}
+                        >
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="cursor-move text-gray-300 hover:text-gray-600 p-1 rounded hover:bg-gray-100">
+                            <GripVertical className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 font-semibold text-sm text-gray-800 truncate">
+                            {link.title || 'Untitled Link'}
+                            </div>
+                            <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => handleUpdateLink(link.id, 'isActive', !link.isActive)}
+                                className={`w-8 h-4 rounded-full relative transition-colors ${link.isActive ? 'bg-green-500' : 'bg-gray-200'}`}
+                            >
+                                <div className={`w-2 h-2 bg-white rounded-full absolute top-1 transition-all ${link.isActive ? 'left-5' : 'left-1'}`} />
+                            </button>
+                            <button 
+                                onClick={() => handleDeleteLink(link.id)}
+                                className="text-gray-300 hover:text-red-500 transition-colors p-1"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                            </div>
+                        </div>
+                        
+                        {/* Expanded Edit State */}
+                        <div className="pl-7 space-y-3">
+                            <input 
+                                type="text" 
+                                value={link.title}
+                                onChange={(e) => handleUpdateLink(link.id, 'title', e.target.value)}
+                                className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-gray-400 transition-colors"
+                                placeholder="Link Title"
+                            />
+                            <div className="flex gap-2">
+                                <div className="relative flex-1">
+                                    <input 
+                                    type="text" 
+                                    value={link.url}
+                                    onChange={(e) => handleUpdateLink(link.id, 'url', e.target.value)}
+                                    className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-gray-400 transition-colors text-gray-600"
+                                    placeholder="https://..."
+                                    />
+                                </div>
+                                <div className="w-[140px]">
+                                    <IconSelector 
+                                        value={link.icon}
+                                        onChange={(val) => handleUpdateLink(link.id, 'icon', val)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Link Styling */}
+                            <div className="bg-gray-50 p-2 rounded-lg border border-gray-100 flex gap-4">
+                                <div className="flex-1">
+                                    <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Background</label>
+                                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md p-1 pl-2">
+                                        <div className="relative w-5 h-5 rounded-full overflow-hidden border border-gray-200 shadow-sm">
+                                            <input 
+                                                type="color" 
+                                                value={link.bgColor || '#ffffff'}
+                                                onChange={(e) => handleUpdateLink(link.id, 'bgColor', e.target.value)}
+                                                className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 border-0 opacity-0"
+                                            />
+                                            <div className="w-full h-full" style={{ backgroundColor: link.bgColor || 'transparent' }} />
+                                        </div>
+                                        <input 
+                                            type="text"
+                                            value={link.bgColor || ''}
+                                            onChange={(e) => handleUpdateLink(link.id, 'bgColor', e.target.value)}
+                                            placeholder="Default"
+                                            className="w-full text-xs outline-none text-gray-600 bg-transparent"
+                                        />
+                                        {link.bgColor && (
+                                            <button onClick={() => handleUpdateLink(link.id, 'bgColor', '')} className="text-gray-400 hover:text-red-500">
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="text-[10px] uppercase font-bold text-gray-400 mb-1 block">Text</label>
+                                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-md p-1 pl-2">
+                                        <div className="relative w-5 h-5 rounded-full overflow-hidden border border-gray-200 shadow-sm">
+                                            <input 
+                                                type="color" 
+                                                value={link.textColor || '#000000'}
+                                                onChange={(e) => handleUpdateLink(link.id, 'textColor', e.target.value)}
+                                                className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer p-0 border-0 opacity-0"
+                                            />
+                                            <div className="w-full h-full" style={{ backgroundColor: link.textColor || 'transparent' }} />
+                                        </div>
+                                        <input 
+                                            type="text"
+                                            value={link.textColor || ''}
+                                            onChange={(e) => handleUpdateLink(link.id, 'textColor', e.target.value)}
+                                            placeholder="Default"
+                                            className="w-full text-xs outline-none text-gray-600 bg-transparent"
+                                        />
+                                        {link.textColor && (
+                                            <button onClick={() => handleUpdateLink(link.id, 'textColor', '')} className="text-gray-400 hover:text-red-500">
+                                                <Trash2 className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    ))}
+                    
+                    {profile.links.length === 0 && (
+                        <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-xl">
+                        No links yet. Add one to get started!
+                        </div>
+                    )}
+                    </div>
+                </section>
+                </>
+            )}
+
+            {activeTab === 'appearance' && (
+                <section className="space-y-8">
+                <div>
+                    <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4">Themes</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                    {THEMES.map(theme => (
+                        <button
+                        key={theme.id}
+                        onClick={() => handleUpdateField('themeId', theme.id)}
+                        className={`
+                            relative h-24 rounded-xl border-2 transition-all overflow-hidden text-left p-3 flex flex-col justify-end
+                            ${profile.themeId === theme.id ? 'border-blue-600 ring-2 ring-blue-100' : 'border-transparent hover:scale-[1.02]'}
+                        `}
+                        >
+                        {/* Theme Preview Background */}
+                        <div className={`absolute inset-0 ${theme.bgClass}`}></div>
+                        
+                        {/* Theme Content Preview */}
+                        <div className={`relative z-10 ${theme.textClass} font-bold text-sm flex items-center gap-2`}>
+                            {profile.themeId === theme.id && <div className="w-2 h-2 bg-blue-500 rounded-full" />}
+                            {theme.name}
+                        </div>
+                        </button>
+                    ))}
+                    </div>
                 </div>
-              </div>
-            </section>
-          )}
+                
+                <div>
+                    <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4">Custom Background</h3>
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                        <div className="flex items-center gap-3 text-sm text-gray-700">
+                        <ImageIcon className="w-4 h-4" />
+                        <span>Background Image</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <input 
+                                type="text" 
+                                value={profile.bgImage || ''}
+                                onChange={(e) => handleUpdateField('bgImage', e.target.value)}
+                                placeholder="https://example.com/image.jpg"
+                                className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                            />
+                            <button 
+                                onClick={() => bgInputRef.current?.click()}
+                                className="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                            >
+                                <Upload className="w-4 h-4 text-gray-600" />
+                            </button>
+                            <input 
+                                type="file" 
+                                ref={bgInputRef} 
+                                className="hidden" 
+                                accept="image/*"
+                                onChange={(e) => handleImageUpload(e, 'bgImage')}
+                            />
+                        </div>
+                        <p className="text-xs text-gray-500">Enter a URL or upload a file (converted to base64).</p>
+                    </div>
+                </div>
 
-          {activeTab === 'settings' && (
-            <section className="space-y-6">
-              <div className="p-4 bg-purple-50 rounded-xl text-purple-900 text-sm leading-relaxed mb-6">
-                These settings control how your site looks on Google and when shared on social media.
-              </div>
+                <div>
+                    <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider mb-4">Custom CSS</h3>
+                    <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
+                    <div className="flex items-center gap-3 text-sm text-gray-700">
+                        <Code className="w-4 h-4" />
+                        <span>CSS Overrides</span>
+                    </div>
+                    <textarea
+                        value={profile.customCss || ''}
+                        onChange={(e) => handleUpdateField('customCss', e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-900 text-green-400 font-mono text-xs rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-600 h-32"
+                        placeholder="body { background: #000; }&#10;.bio-avatar { border-radius: 0; }"
+                        />
+                    <div className="text-[10px] text-gray-500 space-y-1">
+                        <p>Available classes:</p>
+                        <div className="flex flex-wrap gap-1">
+                            <code className="bg-gray-100 px-1 rounded">.bio-avatar</code>
+                            <code className="bg-gray-100 px-1 rounded">.bio-name</code>
+                            <code className="bg-gray-100 px-1 rounded">.bio-description</code>
+                            <code className="bg-gray-100 px-1 rounded">.bio-socials</code>
+                            <code className="bg-gray-100 px-1 rounded">.bio-links</code>
+                            <code className="bg-gray-100 px-1 rounded">.bio-link-item</code>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                </section>
+            )}
 
-              <div className="space-y-4">
-                 <div>
-                   <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Meta Title (SEO)</label>
-                   <input 
-                      type="text" 
-                      value={profile.metaTitle || ''}
-                      onChange={(e) => handleUpdateField('metaTitle', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-                      placeholder={profile.name}
-                    />
-                 </div>
+            {activeTab === 'settings' && (
+                <section className="space-y-6">
+                <div className="p-4 bg-purple-50 rounded-xl text-purple-900 text-sm leading-relaxed mb-6">
+                    These settings control how your site looks on Google and when shared on social media.
+                </div>
 
-                 <div>
-                   <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Meta Description</label>
-                   <textarea 
-                      value={profile.metaDescription || ''}
-                      onChange={(e) => handleUpdateField('metaDescription', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none h-24 focus:outline-none focus:ring-2 focus:ring-black/10"
-                      placeholder={profile.bio}
-                    />
-                    <p className="text-xs text-gray-400 mt-1 text-right">Recommended: 150-160 characters</p>
-                 </div>
+                <div className="space-y-4">
+                    <div>
+                    <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Meta Title (SEO)</label>
+                    <input 
+                        type="text" 
+                        value={profile.metaTitle || ''}
+                        onChange={(e) => handleUpdateField('metaTitle', e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                        placeholder={profile.name}
+                        />
+                    </div>
 
-                 <div>
-                   <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Footer Text</label>
-                   <input 
-                      type="text" 
-                      value={profile.customFooterText || ''}
-                      onChange={(e) => handleUpdateField('customFooterText', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-                      placeholder="Made with BioMinimal"
-                    />
-                 </div>
-              </div>
-            </section>
-          )}
+                    <div>
+                    <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Meta Description</label>
+                    <textarea 
+                        value={profile.metaDescription || ''}
+                        onChange={(e) => handleUpdateField('metaDescription', e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none h-24 focus:outline-none focus:ring-2 focus:ring-black/10"
+                        placeholder={profile.bio}
+                        />
+                        <p className="text-xs text-gray-400 mt-1 text-right">Recommended: 150-160 characters</p>
+                    </div>
+
+                    <div>
+                    <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Footer Text</label>
+                    <input 
+                        type="text" 
+                        value={profile.customFooterText || ''}
+                        onChange={(e) => handleUpdateField('customFooterText', e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                        placeholder="Made with BioMinimal"
+                        />
+                    </div>
+                </div>
+                </section>
+            )}
+            </div>
         </div>
       </div>
 
