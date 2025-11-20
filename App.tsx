@@ -1,8 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, Twitter, Instagram, Github, Globe, Image as ImageIcon, Code, Palette, Smartphone, Tablet, Monitor, Eye, Edit3 } from 'lucide-react';
-import { ProfileData, LinkItem, ViewMode, DeviceMode } from './types';
+import { 
+  Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, 
+  Twitter, Instagram, Github, Globe, Image as ImageIcon, Code, Palette, 
+  Smartphone, Tablet, Monitor, Eye, Edit3, Upload, X
+} from 'lucide-react';
+import { ProfileData, LinkItem, ViewMode, DeviceMode, SocialItem } from './types';
 import { INITIAL_PROFILE, THEMES } from './constants';
 import { DevicePreview } from './components/PhonePreview';
 import { IconSelector } from './components/IconSelector';
@@ -17,12 +21,32 @@ function App() {
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('mobile');
   const [mobilePreviewActive, setMobilePreviewActive] = useState(false);
 
+  // Drag & Drop State
+  const [draggedLinkIndex, setDraggedLinkIndex] = useState<number | null>(null);
+
+  // File Input Refs
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const bgInputRef = useRef<HTMLInputElement>(null);
+
   // --- Actions ---
 
   const handleUpdateField = (field: keyof ProfileData, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
+  // Image Upload Handler
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'avatarUrl' | 'bgImage') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfile(prev => ({ ...prev, [field]: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Link Management
   const handleAddLink = () => {
     const newLink: LinkItem = {
       id: Date.now().toString(),
@@ -48,14 +72,56 @@ function App() {
     }));
   };
 
+  // Drag and Drop Handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedLinkIndex(index);
+    // Set generic drag image or use default
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault(); // Essential for allowing drop
+    if (draggedLinkIndex === null || draggedLinkIndex === index) return;
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedLinkIndex === null || draggedLinkIndex === dropIndex) return;
+
+    const newLinks = [...profile.links];
+    const [draggedItem] = newLinks.splice(draggedLinkIndex, 1);
+    newLinks.splice(dropIndex, 0, draggedItem);
+
+    setProfile(prev => ({ ...prev, links: newLinks }));
+    setDraggedLinkIndex(null);
+  };
+
+  // Social Management
+  const handleAddSocial = () => {
+    const newSocial: SocialItem = {
+      id: Date.now().toString(),
+      platform: 'globe',
+      url: 'https://'
+    };
+    setProfile(prev => ({ ...prev, socials: [...prev.socials, newSocial] }));
+  };
+
+  const handleUpdateSocial = (id: string, field: keyof SocialItem, value: string) => {
+    setProfile(prev => ({
+      ...prev,
+      socials: prev.socials.map(s => s.id === id ? { ...s, [field]: value } : s)
+    }));
+  };
+
+  const handleDeleteSocial = (id: string) => {
+    setProfile(prev => ({ ...prev, socials: prev.socials.filter(s => s.id !== id) }));
+  };
+
   const handleExport = () => {
     const theme = THEMES.find(t => t.id === profile.themeId) || THEMES[0];
     
     const linksHtml = profile.links.filter(l => l.isActive).map(link => {
-        // Render the icon to a static SVG string
         const iconSvg = renderToStaticMarkup(getIcon(link.icon, "w-5 h-5"));
-        
-        // Construct custom styles
         let styleAttr = '';
         if (link.bgColor || link.textColor) {
             const styles = [];
@@ -66,8 +132,6 @@ function App() {
             if (link.textColor) styles.push(`color: ${link.textColor}`);
             styleAttr = `style="${styles.join('; ')}"`;
         }
-
-        // Determine hover class based on whether custom bg is present
         const hoverClass = !link.bgColor ? theme.cardHoverClass : 'hover:brightness-105';
         const iconOpacityClass = link.textColor ? '' : 'opacity-70 group-hover:opacity-100';
 
@@ -82,6 +146,16 @@ function App() {
           </a>
         `;
     }).join('');
+
+    const socialsHtml = profile.socials.length > 0 ? `
+      <div class="flex gap-4 justify-center mb-8 flex-wrap bio-socials">
+        ${profile.socials.map(s => `
+          <a href="${s.url}" target="_blank" rel="noreferrer" class="opacity-70 hover:opacity-100 transition-opacity transform hover:scale-110 duration-200">
+             ${renderToStaticMarkup(getIcon(s.platform, "w-6 h-6"))}
+          </a>
+        `).join('')}
+      </div>
+    ` : '';
 
     // Handle Background Image vs Theme Color
     const bodyStyle = profile.bgImage 
@@ -130,12 +204,15 @@ function App() {
         </div>
 
         <!-- Header Info -->
-        <div class="text-center mb-8">
+        <div class="text-center mb-6">
             <h1 class="text-2xl font-bold tracking-tight mb-2 bio-name">${profile.name}</h1>
             <p class="text-sm opacity-80 leading-relaxed max-w-[250px] mx-auto bio-description">
                 ${profile.bio}
             </p>
         </div>
+
+        <!-- Socials -->
+        ${socialsHtml}
 
         <!-- Links -->
         <div class="w-full space-y-3 flex-1 bio-links">
@@ -277,30 +354,21 @@ function App() {
 
         {/* Tabs */}
         <div className="px-6 pt-6 pb-2">
-          <div className="flex bg-gray-100 p-1 rounded-lg">
-            <button 
-              onClick={() => setActiveTab('links')}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'links' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Content
-            </button>
-            <button 
-              onClick={() => setActiveTab('appearance')}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'appearance' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Design
-            </button>
-            <button 
-              onClick={() => setActiveTab('settings')}
-              className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'settings' ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Settings
-            </button>
+          <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto">
+            {['links', 'appearance', 'settings'].map((tab) => (
+               <button 
+                key={tab}
+                onClick={() => setActiveTab(tab as any)}
+                className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-all capitalize whitespace-nowrap ${activeTab === tab ? 'bg-white shadow-sm text-black' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-8 pb-24">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-8 pb-24 scrollbar-thin scrollbar-thumb-gray-200">
           
           {activeTab === 'links' && (
             <>
@@ -308,11 +376,23 @@ function App() {
               <section className="space-y-4">
                 <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Profile</h3>
                 <div className="flex gap-4 items-start">
-                  <div className="w-20 h-20 bg-gray-100 rounded-full overflow-hidden shrink-0 border border-gray-200 relative group cursor-pointer">
-                    <img src={profile.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs">
-                      URL
+                  <div className="relative group">
+                    <div className="w-20 h-20 bg-gray-100 rounded-full overflow-hidden shrink-0 border border-gray-200">
+                      <img src={profile.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
                     </div>
+                    <button 
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer"
+                    >
+                       <Upload className="w-5 h-5 text-white" />
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={avatarInputRef} 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, 'avatarUrl')}
+                    />
                   </div>
                   <div className="flex-1 space-y-3">
                     <input 
@@ -328,14 +408,48 @@ function App() {
                       className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none h-20 focus:outline-none focus:ring-2 focus:ring-black/10"
                       placeholder="Short bio..."
                     />
-                    <input 
-                      type="text" 
-                      value={profile.avatarUrl}
-                      onChange={(e) => handleUpdateField('avatarUrl', e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-500 focus:outline-none focus:ring-2 focus:ring-black/10"
-                      placeholder="Avatar Image URL"
-                    />
                   </div>
+                </div>
+              </section>
+
+              <hr className="border-gray-100" />
+
+              {/* Social Icons Section */}
+              <section className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xs font-bold uppercase text-gray-400 tracking-wider">Social Icons</h3>
+                  <button 
+                    onClick={handleAddSocial}
+                    className="text-xs flex items-center gap-1 bg-gray-100 text-gray-600 px-2 py-1 rounded hover:bg-gray-200"
+                  >
+                    <Plus className="w-3 h-3" /> Add Icon
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-2">
+                  {profile.socials.map((social) => (
+                    <div key={social.id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                      <div className="w-[120px]">
+                         <IconSelector 
+                            value={social.platform}
+                            onChange={(val) => handleUpdateSocial(social.id, 'platform', val)}
+                         />
+                      </div>
+                      <input 
+                         type="text" 
+                         value={social.url}
+                         onChange={(e) => handleUpdateSocial(social.id, 'url', e.target.value)}
+                         className="flex-1 bg-transparent text-sm outline-none min-w-0"
+                         placeholder="https://..."
+                      />
+                      <button 
+                        onClick={() => handleDeleteSocial(social.id)}
+                        className="text-gray-400 hover:text-red-500 p-1"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </section>
 
@@ -353,14 +467,24 @@ function App() {
                   </button>
                 </div>
 
-                <div className="space-y-3">
-                  {profile.links.map((link) => (
-                    <div key={link.id} className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm group hover:border-gray-300 transition-colors">
+                <div className="space-y-3" onDragOver={(e) => e.preventDefault()}>
+                  {profile.links.map((link, index) => (
+                    <div 
+                      key={link.id} 
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, index)}
+                      onDragOver={(e) => handleDragOver(e, index)}
+                      onDrop={(e) => handleDrop(e, index)}
+                      className={`
+                        bg-white border border-gray-200 rounded-xl p-3 shadow-sm group hover:border-gray-300 transition-all
+                        ${draggedLinkIndex === index ? 'opacity-40 border-dashed border-2 border-gray-400' : ''}
+                      `}
+                    >
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="cursor-move text-gray-300 hover:text-gray-600">
+                        <div className="cursor-move text-gray-300 hover:text-gray-600 p-1 rounded hover:bg-gray-100">
                           <GripVertical className="w-4 h-4" />
                         </div>
-                        <div className="flex-1 font-semibold text-sm text-gray-800">
+                        <div className="flex-1 font-semibold text-sm text-gray-800 truncate">
                           {link.title || 'Untitled Link'}
                         </div>
                         <div className="flex items-center gap-2">
@@ -372,7 +496,7 @@ function App() {
                           </button>
                           <button 
                             onClick={() => handleDeleteLink(link.id)}
-                            className="text-gray-300 hover:text-red-500 transition-colors"
+                            className="text-gray-300 hover:text-red-500 transition-colors p-1"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -507,16 +631,31 @@ function App() {
                  <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 space-y-3">
                     <div className="flex items-center gap-3 text-sm text-gray-700">
                       <ImageIcon className="w-4 h-4" />
-                      <span>Background Image URL</span>
+                      <span>Background Image</span>
                     </div>
-                    <input 
-                      type="text" 
-                      value={profile.bgImage || ''}
-                      onChange={(e) => handleUpdateField('bgImage', e.target.value)}
-                      placeholder="https://example.com/image.jpg"
-                      className="w-full px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-                    />
-                    <p className="text-xs text-gray-500">Provide a direct URL to an image to override the theme background.</p>
+                    <div className="flex gap-2">
+                        <input 
+                            type="text" 
+                            value={profile.bgImage || ''}
+                            onChange={(e) => handleUpdateField('bgImage', e.target.value)}
+                            placeholder="https://example.com/image.jpg"
+                            className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                        />
+                        <button 
+                            onClick={() => bgInputRef.current?.click()}
+                            className="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+                        >
+                            <Upload className="w-4 h-4 text-gray-600" />
+                        </button>
+                        <input 
+                            type="file" 
+                            ref={bgInputRef} 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(e, 'bgImage')}
+                        />
+                    </div>
+                    <p className="text-xs text-gray-500">Enter a URL or upload a file (converted to base64).</p>
                  </div>
               </div>
 
@@ -539,6 +678,7 @@ function App() {
                          <code className="bg-gray-100 px-1 rounded">.bio-avatar</code>
                          <code className="bg-gray-100 px-1 rounded">.bio-name</code>
                          <code className="bg-gray-100 px-1 rounded">.bio-description</code>
+                         <code className="bg-gray-100 px-1 rounded">.bio-socials</code>
                          <code className="bg-gray-100 px-1 rounded">.bio-links</code>
                          <code className="bg-gray-100 px-1 rounded">.bio-link-item</code>
                       </div>

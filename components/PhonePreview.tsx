@@ -25,17 +25,17 @@ export const DevicePreview: React.FC<DevicePreviewProps> = ({ profile, mode = 'm
     ? profile.customCss.replace(/body/g, '#preview-root') 
     : '';
 
-  // Frame Dimensions based on mode
+  // Frame Dimensions based on mode - Optimized to fit in viewport
   const getFrameStyles = () => {
     switch (mode) {
       case 'mobile':
-        return 'w-[320px] h-[640px] border-[14px] rounded-[2.5rem]';
+        return 'h-[640px] max-h-[80vh] aspect-[9/19] w-auto border-[14px] rounded-[2.5rem]';
       case 'tablet':
-        return 'w-[600px] h-[800px] border-[12px] rounded-[1.5rem]';
+        return 'h-[800px] max-h-[85vh] aspect-[3/4] w-auto border-[12px] rounded-[1.5rem]';
       case 'desktop':
-        return 'w-full h-full border-[8px] rounded-lg max-w-[1024px] max-h-[700px]';
+        return 'w-full h-full border-[8px] rounded-lg max-w-[1024px] max-h-[85vh]';
       default:
-        return 'w-[320px] h-[640px] border-[14px] rounded-[2.5rem]';
+        return 'h-[640px] max-h-[80vh] aspect-[9/19] w-auto border-[14px] rounded-[2.5rem]';
     }
   };
 
@@ -93,12 +93,29 @@ export const DevicePreview: React.FC<DevicePreviewProps> = ({ profile, mode = 'm
               </div>
 
               {/* Header Info */}
-              <div className="text-center mb-8">
+              <div className="text-center mb-6">
                 <h1 className="text-2xl font-bold tracking-tight mb-2 bio-name">{profile.name}</h1>
                 <p className="text-sm opacity-80 leading-relaxed max-w-[250px] mx-auto bio-description">
                   {profile.bio}
                 </p>
               </div>
+
+              {/* Social Icons Row */}
+              {profile.socials.length > 0 && (
+                <div className="flex gap-4 justify-center mb-8 flex-wrap bio-socials">
+                  {profile.socials.map(social => (
+                    <a 
+                      key={social.id} 
+                      href={social.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={`opacity-70 hover:opacity-100 transition-opacity transform hover:scale-110 duration-200`}
+                    >
+                      {getIcon(social.platform, "w-6 h-6")}
+                    </a>
+                  ))}
+                </div>
+              )}
 
               {/* Links */}
               <div className="w-full space-y-3 flex-1 bio-links">
@@ -121,27 +138,4 @@ export const DevicePreview: React.FC<DevicePreviewProps> = ({ profile, mode = 'm
                         ${!link.bgColor ? theme.cardHoverClass : 'hover:brightness-105'}
                       `}
                     >
-                      <div className="flex items-center gap-3">
-                        <span className={`transition-opacity bio-link-icon ${link.textColor ? '' : 'opacity-70 group-hover:opacity-100'}`}>
-                          {getIcon(link.icon)}
-                        </span>
-                        <span className="font-medium text-sm bio-link-text">{link.title}</span>
-                      </div>
-                    </a>
-                  );
-                })}
-              </div>
-
-              {/* Footer Branding */}
-              {profile.customFooterText && (
-                <div className="mt-8 pt-4 opacity-40 text-[10px] uppercase tracking-widest font-semibold bio-footer">
-                  {profile.customFooterText}
-                </div>
-              )}
-            </div>
-
-        </div>
-      </div>
-    </div>
-  );
-};
+                      <div className="flex items-

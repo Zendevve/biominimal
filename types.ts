@@ -9,6 +9,12 @@ export type LinkItem = {
   textColor?: string;
 };
 
+export type SocialItem = {
+  id: string;
+  platform: string; // icon name
+  url: string;
+};
+
 export type ThemeConfig = {
   id: string;
   name: string;
@@ -25,6 +31,7 @@ export type ProfileData = {
   bio: string;
   avatarUrl: string;
   links: LinkItem[];
+  socials: SocialItem[];
   themeId: string;
   // Static Site Config
   bgImage?: string;

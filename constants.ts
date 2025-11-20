@@ -51,9 +51,13 @@ export const INITIAL_PROFILE: ProfileData = {
   themeId: 'minimal-light',
   links: [
     { id: '1', title: 'Latest Project', url: '#', icon: 'globe', isActive: true },
-    { id: '2', title: 'Twitter', url: '#', icon: 'twitter', isActive: true },
-    { id: '3', title: 'Instagram', url: '#', icon: 'instagram', isActive: true },
-    { id: '4', title: 'Contact Me', url: 'mailto:hello@example.com', icon: 'mail', isActive: true },
+    { id: '2', title: 'My Portfolio', url: '#', icon: 'briefcase', isActive: true },
+    { id: '3', title: 'Newsletter', url: '#', icon: 'mail', isActive: true },
+  ],
+  socials: [
+    { id: 's1', platform: 'twitter', url: 'https://twitter.com' },
+    { id: 's2', platform: 'instagram', url: 'https://instagram.com' },
+    { id: 's3', platform: 'github', url: 'https://github.com' },
   ],
   metaTitle: 'Alex Creator | Links',
   metaDescription: 'Welcome to my personal page. Check out my latest projects and social links.',
