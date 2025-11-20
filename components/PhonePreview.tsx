@@ -7,9 +7,10 @@ import { getIcon } from './Icons';
 interface DevicePreviewProps {
   profile: ProfileData;
   mode?: DeviceMode;
+  rotated?: boolean;
 }
 
-export const DevicePreview: React.FC<DevicePreviewProps> = ({ profile, mode = 'mobile' }) => {
+export const DevicePreview: React.FC<DevicePreviewProps> = ({ profile, mode = 'mobile', rotated = false }) => {
   const theme = THEMES.find(t => t.id === profile.themeId) || THEMES[0];
   const fontClass = theme.font === 'serif' ? 'font-serif' : 'font-sans';
   
@@ -27,13 +28,26 @@ export const DevicePreview: React.FC<DevicePreviewProps> = ({ profile, mode = 'm
 
   // Frame Dimensions based on mode - Optimized to fit in viewport
   const getFrameStyles = () => {
+    if (mode === 'desktop') {
+        return 'w-full h-full border-[8px] rounded-lg max-w-[1024px] max-h-[85vh]';
+    }
+
+    if (rotated) {
+        // Landscape Orientation
+        if (mode === 'mobile') {
+            return 'w-[640px] max-w-[85vw] aspect-[19/9] h-auto border-[14px] rounded-[2.5rem]';
+        }
+        if (mode === 'tablet') {
+            return 'w-[800px] max-w-[85vw] aspect-[4/3] h-auto border-[12px] rounded-[1.5rem]';
+        }
+    }
+
+    // Portrait Orientation (Default)
     switch (mode) {
       case 'mobile':
         return 'h-[640px] max-h-[80vh] aspect-[9/19] w-auto border-[14px] rounded-[2.5rem]';
       case 'tablet':
         return 'h-[800px] max-h-[85vh] aspect-[3/4] w-auto border-[12px] rounded-[1.5rem]';
-      case 'desktop':
-        return 'w-full h-full border-[8px] rounded-lg max-w-[1024px] max-h-[85vh]';
       default:
         return 'h-[640px] max-h-[80vh] aspect-[9/19] w-auto border-[14px] rounded-[2.5rem]';
     }
@@ -42,8 +56,8 @@ export const DevicePreview: React.FC<DevicePreviewProps> = ({ profile, mode = 'm
   return (
     <div className={`relative mx-auto transition-all duration-500 ease-in-out bg-gray-900 border-gray-900 shadow-2xl overflow-hidden flex flex-col ${getFrameStyles()}`}>
       
-      {/* Mobile Hardware Buttons (Only show on mobile mode) */}
-      {mode === 'mobile' && (
+      {/* Mobile Hardware Buttons (Only show on mobile portrait mode) */}
+      {mode === 'mobile' && !rotated && (
         <>
           <div className="h-[32px] w-[3px] bg-gray-800 absolute -left-[17px] top-[72px] rounded-l-lg"></div>
           <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[17px] top-[124px] rounded-l-lg"></div>
@@ -138,4 +152,27 @@ export const DevicePreview: React.FC<DevicePreviewProps> = ({ profile, mode = 'm
                         ${!link.bgColor ? theme.cardHoverClass : 'hover:brightness-105'}
                       `}
                     >
-                      <div className="flex items-
+                      <div className="flex items-center gap-3">
+                        <span className={`transition-opacity bio-link-icon ${link.textColor ? '' : 'opacity-70 group-hover:opacity-100'}`}>
+                          {getIcon(link.icon)}
+                        </span>
+                        <span className="font-medium text-sm bio-link-text">{link.title}</span>
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+
+              {/* Footer Branding */}
+              {profile.customFooterText && (
+                <div className="mt-8 pt-4 opacity-40 text-[10px] uppercase tracking-widest font-semibold bio-footer">
+                  {profile.customFooterText}
+                </div>
+              )}
+            </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};

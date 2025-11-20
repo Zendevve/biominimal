@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { 
   Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, 
   Twitter, Instagram, Github, Globe, Image as ImageIcon, Code, Palette, 
-  Smartphone, Tablet, Monitor, Eye, Edit3, Upload, X
+  Smartphone, Tablet, Monitor, Eye, Edit3, Upload, X, RotateCw
 } from 'lucide-react';
 import { ProfileData, LinkItem, ViewMode, DeviceMode, SocialItem } from './types';
 import { INITIAL_PROFILE, THEMES } from './constants';
@@ -19,6 +19,7 @@ function App() {
   
   // Preview State
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('mobile');
+  const [isRotated, setIsRotated] = useState(false);
   const [mobilePreviewActive, setMobilePreviewActive] = useState(false);
 
   // Drag & Drop State
@@ -762,11 +763,22 @@ function App() {
             >
                 <Monitor className="w-4 h-4" />
             </button>
+
+            <div className="w-px bg-gray-200 mx-1 my-1" /> {/* Separator */}
+
+            <button 
+                onClick={() => setIsRotated(!isRotated)}
+                className={`p-2 rounded-full transition-colors ${isRotated ? 'bg-gray-100 text-black' : 'text-gray-400 hover:text-gray-600'} ${deviceMode === 'desktop' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                title="Rotate Device"
+                disabled={deviceMode === 'desktop'}
+            >
+                <RotateCw className="w-4 h-4" />
+            </button>
         </div>
 
         <div className="relative z-10 w-full h-full overflow-hidden flex items-center justify-center p-4 sm:p-8 md:p-12 lg:p-16">
            <div className="animate-in fade-in zoom-in duration-300 origin-center w-full h-full flex items-center justify-center">
-               <DevicePreview profile={profile} mode={deviceMode} />
+               <DevicePreview profile={profile} mode={deviceMode} rotated={isRotated} />
            </div>
         </div>
       </div>
