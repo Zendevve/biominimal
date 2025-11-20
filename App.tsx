@@ -150,7 +150,7 @@ function App() {
         const iconOpacityClass = link.textColor ? '' : 'opacity-70 group-hover:opacity-100';
 
         return `
-          <a href="${link.url}" target="_blank" rel="noreferrer" ${styleAttr} class="block w-full px-4 py-3.5 rounded-xl transition-all duration-200 flex items-center justify-between group bio-link-item ${theme.cardBgClass} ${hoverClass}">
+          <a href="${link.url}" target="_blank" rel="noreferrer" ${styleAttr} class="block w-full px-4 py-3.5 rounded-xl transition-all duration-200 flex items-center justify-between group bio-link-item hover:scale-[1.02] active:scale-[0.98] ${theme.cardBgClass} ${hoverClass}">
             <div class="flex items-center gap-3">
               <span class="transition-opacity bio-link-icon ${iconOpacityClass}">
                 ${iconSvg}

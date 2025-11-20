@@ -148,6 +148,7 @@ export const DevicePreview: React.FC<DevicePreviewProps> = ({ profile, mode = 'm
                       style={customStyle}
                       className={`
                         block w-full px-4 py-3.5 rounded-xl transition-all duration-200 flex items-center justify-between group bio-link-item
+                        hover:scale-[1.02] active:scale-[0.98]
                         ${theme.cardBgClass} 
                         ${!link.bgColor ? theme.cardHoverClass : 'hover:brightness-105'}
                       `}
