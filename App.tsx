@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { 
   Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, 
   Twitter, Instagram, Github, Globe, Image as ImageIcon, Code, Palette, 
-  Smartphone, Tablet, Monitor, Eye, Edit3, Upload, X, RotateCw,
+  Smartphone, Tablet, Monitor, Eye, EyeOff, Edit3, Upload, X, RotateCw,
   ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { ProfileData, LinkItem, ViewMode, DeviceMode, SocialItem } from './types';
@@ -564,6 +564,7 @@ function App() {
                         className={`
                             bg-white border border-gray-200 rounded-xl p-3 shadow-sm group hover:border-gray-300 transition-all
                             ${draggedLinkIndex === index ? 'opacity-40 border-dashed border-2 border-gray-400' : ''}
+                            ${!link.isActive ? 'opacity-60 grayscale-[0.5]' : ''}
                         `}
                         >
                         <div className="flex items-center gap-3 mb-3">
@@ -573,19 +574,21 @@ function App() {
                             <div className="flex-1 font-semibold text-sm text-gray-800 truncate">
                             {link.title || 'Untitled Link'}
                             </div>
-                            <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => handleUpdateLink(link.id, 'isActive', !link.isActive)}
-                                className={`w-8 h-4 rounded-full relative transition-colors ${link.isActive ? 'bg-green-500' : 'bg-gray-200'}`}
-                            >
-                                <div className={`w-2 h-2 bg-white rounded-full absolute top-1 transition-all ${link.isActive ? 'left-5' : 'left-1'}`} />
-                            </button>
-                            <button 
-                                onClick={() => handleDeleteLink(link.id)}
-                                className="text-gray-300 hover:text-red-500 transition-colors p-1"
-                            >
-                                <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                                <button 
+                                    onClick={() => handleUpdateLink(link.id, 'isActive', !link.isActive)}
+                                    className={`p-2 rounded-lg transition-colors ${link.isActive ? 'text-gray-600 hover:bg-gray-100' : 'text-gray-400 bg-gray-100 hover:bg-gray-200'}`}
+                                    title={link.isActive ? "Hide from preview" : "Show in preview"}
+                                >
+                                    {link.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                </button>
+                                <button 
+                                    onClick={() => handleDeleteLink(link.id)}
+                                    className="text-gray-300 hover:text-red-500 transition-colors p-2 hover:bg-red-50 rounded-lg"
+                                    title="Delete link"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
                         
