@@ -35,6 +35,7 @@ export type ProfileData = {
   themeId: string;
   // Static Site Config
   bgImage?: string;
+  socialImage?: string;
   metaTitle?: string;
   metaDescription?: string;
   customFooterText?: string;

@@ -5,7 +5,7 @@ import {
   Plus, Layout, Settings, Trash2, GripVertical, ArrowLeft, Download, 
   Twitter, Instagram, Github, Globe, Image as ImageIcon, Code, Palette, 
   Smartphone, Tablet, Monitor, Eye, EyeOff, Edit3, Upload, X, RotateCw,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Share2, Search
 } from 'lucide-react';
 import { ProfileData, LinkItem, ViewMode, DeviceMode, SocialItem } from './types';
 import { INITIAL_PROFILE, THEMES } from './constants';
@@ -30,6 +30,7 @@ function App() {
   // File Input Refs
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
+  const socialImageInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-expand sidebar on mobile resize
   useEffect(() => {
@@ -49,7 +50,7 @@ function App() {
   };
 
   // Image Upload Handler
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'avatarUrl' | 'bgImage') => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'avatarUrl' | 'bgImage' | 'socialImage') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -180,14 +181,34 @@ function App() {
         : `${theme.bgClass} ${theme.textClass} ${theme.font === 'serif' ? 'font-serif' : 'font-sans'} min-h-screen flex flex-col`;
 
     const overlayClass = profile.bgImage ? 'backdrop-blur-sm bg-black/10' : '';
+    
+    // Open Graph Image Logic
+    const ogImageTag = (profile.socialImage || profile.bgImage) 
+      ? `<meta property="og:image" content="${profile.socialImage || profile.bgImage}">
+    <meta name="twitter:image" content="${profile.socialImage || profile.bgImage}">` 
+      : '';
 
     const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- SEO & Social Meta Tags -->
     <title>${profile.metaTitle || profile.name}</title>
     <meta name="description" content="${profile.metaDescription || profile.bio}">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="${profile.metaTitle || profile.name}">
+    <meta property="og:description" content="${profile.metaDescription || profile.bio}">
+    ${ogImageTag}
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${profile.metaTitle || profile.name}">
+    <meta name="twitter:description" content="${profile.metaDescription || profile.bio}">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -778,43 +799,117 @@ function App() {
             )}
 
             {activeTab === 'settings' && (
-                <section className="space-y-6">
-                <div className="p-4 bg-purple-50 rounded-xl text-purple-900 text-sm leading-relaxed mb-6">
-                    These settings control how your site looks on Google and when shared on social media.
+                <section className="space-y-8">
+                <div className="p-4 bg-purple-50 rounded-xl text-purple-900 text-sm leading-relaxed">
+                    Configure how your site appears on Google searches and when shared on social media platforms like Twitter and Facebook.
+                </div>
+                
+                {/* Previews */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Google Search Preview */}
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="flex items-center gap-2 mb-3 border-b border-gray-100 pb-2">
+                            <div className="bg-blue-100 p-1 rounded-md"><Search className="w-3 h-3 text-blue-600"/></div>
+                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Search Result</span>
+                        </div>
+                        <div className="font-sans">
+                            <div className="text-xs text-gray-500 mb-0.5 flex items-center gap-1">
+                                <div className="w-4 h-4 bg-gray-200 rounded-full overflow-hidden">
+                                    <img src={profile.avatarUrl} className="w-full h-full object-cover" />
+                                </div>
+                                <span>{window.location.hostname}</span>
+                            </div>
+                            <div className="text-lg text-blue-800 hover:underline cursor-pointer truncate font-medium leading-tight mb-1">
+                                {profile.metaTitle || profile.name}
+                            </div>
+                            <div className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
+                                {profile.metaDescription || profile.bio}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Social Card Preview */}
+                    <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+                        <div className="flex items-center gap-2 mb-3 border-b border-gray-100 pb-2">
+                            <div className="bg-purple-100 p-1 rounded-md"><Share2 className="w-3 h-3 text-purple-600"/></div>
+                            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Social Card</span>
+                        </div>
+                        <div className="rounded-lg border border-gray-200 overflow-hidden">
+                            <div className="h-32 bg-gray-100 relative">
+                                {(profile.socialImage || profile.bgImage) ? (
+                                    <img src={profile.socialImage || profile.bgImage} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400 bg-gray-50">
+                                        <ImageIcon className="w-8 h-8 opacity-20" />
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-3 bg-gray-50/50">
+                                <div className="font-bold text-sm text-gray-900 truncate mb-1">{profile.metaTitle || profile.name}</div>
+                                <div className="text-xs text-gray-500 line-clamp-2">{profile.metaDescription || profile.bio}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
+                {/* Inputs */}
                 <div className="space-y-4">
+                    {/* Social Image Input */}
                     <div>
-                    <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Meta Title (SEO)</label>
-                    <input 
-                        type="text" 
-                        value={profile.metaTitle || ''}
-                        onChange={(e) => handleUpdateField('metaTitle', e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-                        placeholder={profile.name}
-                        />
+                        <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Social Sharing Image</label>
+                        <div className="flex gap-2">
+                            <div className="flex-1 flex items-center gap-3 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-500">
+                                <ImageIcon className="w-4 h-4" />
+                                <span className="truncate">{profile.socialImage ? 'Image uploaded' : 'Defaulting to background or empty'}</span>
+                            </div>
+                            <button 
+                                onClick={() => socialImageInputRef.current?.click()}
+                                className="px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 whitespace-nowrap text-sm font-medium"
+                            >
+                                Upload Image
+                            </button>
+                            <input 
+                                type="file" 
+                                ref={socialImageInputRef} 
+                                className="hidden" 
+                                accept="image/*"
+                                onChange={(e) => handleImageUpload(e, 'socialImage')}
+                            />
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">Recommended: 1200x630px (Open Graph standard)</p>
                     </div>
 
                     <div>
-                    <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Meta Description</label>
-                    <textarea 
-                        value={profile.metaDescription || ''}
-                        onChange={(e) => handleUpdateField('metaDescription', e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none h-24 focus:outline-none focus:ring-2 focus:ring-black/10"
-                        placeholder={profile.bio}
-                        />
-                        <p className="text-xs text-gray-400 mt-1 text-right">Recommended: 150-160 characters</p>
+                        <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Meta Title (SEO)</label>
+                        <input 
+                            type="text" 
+                            value={profile.metaTitle || ''}
+                            onChange={(e) => handleUpdateField('metaTitle', e.target.value)}
+                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                            placeholder={profile.name}
+                            />
                     </div>
 
                     <div>
-                    <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Footer Text</label>
-                    <input 
-                        type="text" 
-                        value={profile.customFooterText || ''}
-                        onChange={(e) => handleUpdateField('customFooterText', e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
-                        placeholder="Made with BioMinimal"
-                        />
+                        <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Meta Description</label>
+                        <textarea 
+                            value={profile.metaDescription || ''}
+                            onChange={(e) => handleUpdateField('metaDescription', e.target.value)}
+                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm resize-none h-24 focus:outline-none focus:ring-2 focus:ring-black/10"
+                            placeholder={profile.bio}
+                            />
+                            <p className="text-xs text-gray-400 mt-1 text-right">Recommended: 150-160 characters</p>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-gray-400 tracking-wider mb-2">Footer Text</label>
+                        <input 
+                            type="text" 
+                            value={profile.customFooterText || ''}
+                            onChange={(e) => handleUpdateField('customFooterText', e.target.value)}
+                            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                            placeholder="Made with BioMinimal"
+                            />
                     </div>
                 </div>
                 </section>

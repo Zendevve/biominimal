@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { Share2, Check } from 'lucide-react';
 import { ProfileData, DeviceMode } from '../types';
 import { THEMES } from '../constants';
 import { getIcon } from './Icons';
@@ -11,6 +12,15 @@ interface DevicePreviewProps {
 }
 
 export const DevicePreview: React.FC<DevicePreviewProps> = ({ profile, mode = 'mobile', rotated = false }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigator.clipboard.writeText(window.location.href);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const theme = THEMES.find(t => t.id === profile.themeId) || THEMES[0];
   const fontClass = theme.font === 'serif' ? 'font-serif' : 'font-sans';
   
@@ -164,9 +174,22 @@ export const DevicePreview: React.FC<DevicePreviewProps> = ({ profile, mode = 'm
                 })}
               </div>
 
+              {/* Copy Link Button */}
+              <button
+                onClick={handleCopy}
+                className={`
+                  mt-8 flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-medium transition-all duration-200
+                  hover:scale-105 active:scale-95 cursor-pointer
+                  ${theme.textClass === 'text-white' ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-black/5 hover:bg-black/10 text-gray-900'}
+                `}
+              >
+                {copied ? <Check className="w-3.5 h-3.5" /> : <Share2 className="w-3.5 h-3.5" />}
+                <span>{copied ? 'Copied!' : 'Copy Link'}</span>
+              </button>
+
               {/* Footer Branding */}
               {profile.customFooterText && (
-                <div className="mt-8 pt-4 opacity-40 text-[10px] uppercase tracking-widest font-semibold bio-footer">
+                <div className="mt-6 opacity-40 text-[10px] uppercase tracking-widest font-semibold bio-footer">
                   {profile.customFooterText}
                 </div>
               )}
